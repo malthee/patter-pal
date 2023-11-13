@@ -1,8 +1,159 @@
-﻿@{
+﻿@using patter_pal.Util;
+@{
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<!-- Websocket example code -->
+<h1>WebSocket Sample Application</h1>
+<p id="stateLabel">Ready to connect...</p>
+<div>
+    <label for="connectionUrl">WebSocket Server URL:</label>
+    <input id="connectionUrl" />
+    <button id="connectButton" type="submit">Connect</button>
 </div>
+<p></p>
+<div>
+    <button id="closeButton" disabled>Close Socket</button>
+</div>
+
+<h2>Communication Log</h2>
+<table style="width: 800px">
+    <thead>
+        <tr>
+            <td style="width: 100px">From</td>
+            <td style="width: 100px">To</td>
+            <td>Data</td>
+        </tr>
+    </thead>
+    <tbody id="commsLog">
+    </tbody>
+</table>
+
+<script>
+    let socket;
+    let mediaRecorder;
+    let audioChunks = [];
+
+    function startRecording() {
+        if (!socket) {console.log('NOT SETUP WARNING'); return;}
+
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.start(@AppConfig.SpeechRecordTimesliceMs);
+
+                mediaRecorder.ondataavailable = function (event) {
+                    if(event.data.size <= 0) return;
+                    console.log('data available');
+                    socket.send(event.data);
+                };
+            })
+            .catch(error => {
+                // TODO handle missing permissione tc
+                alert(error);
+                console.log(error);
+            });
+    }
+
+    function stopRecording() {
+        mediaRecorder?.stop();
+        console.log('stopped rec');
+        socket?.close(1000, 'Done');
+    }
+     
+</script>
+
+<script>
+    var connectionUrl = document.getElementById("connectionUrl");
+    var connectButton = document.getElementById("connectButton");
+    var stateLabel = document.getElementById("stateLabel");
+    var commsLog = document.getElementById("commsLog");
+    var closeButton = document.getElementById("closeButton");
+    var port = document.location.port ? (":" + document.location.port) : "";
+
+    connectionUrl.value = "wss://" + document.location.hostname + port + "@AppConfig.SpeechWsEndpoint";
+
+    function updateState() {
+        function disable() {
+            closeButton.disabled = true;
+        }
+        function enable() {
+            closeButton.disabled = false;
+        }
+
+        connectionUrl.disabled = true;
+        connectButton.disabled = true;
+
+        if (!socket) {
+            disable();
+        } else {
+            switch (socket.readyState) {
+                case WebSocket.CLOSED:
+                    stateLabel.innerHTML = "Closed";
+                    disable();
+                    connectionUrl.disabled = false;
+                    connectButton.disabled = false;
+                    break;
+                case WebSocket.CLOSING:
+                    stateLabel.innerHTML = "Closing...";
+                    disable();
+                    break;
+                case WebSocket.CONNECTING:
+                    stateLabel.innerHTML = "Connecting...";
+                    disable();
+                    break;
+                case WebSocket.OPEN:
+                    stateLabel.innerHTML = "Open";
+                    enable();
+                    break;
+                default:
+                    stateLabel.innerHTML = "Unknown WebSocket State: " + htmlEscape(socket.readyState);
+                    disable();
+                    break;
+            }
+        }
+    }
+
+    closeButton.onclick = function () {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+            alert("socket not connected");
+        }
+        stopRecording();
+    };
+
+    connectButton.onclick = function () {
+        stateLabel.innerHTML = "Connecting";
+        socket = new WebSocket(connectionUrl.value);
+        startRecording();
+        socket.onopen = function (event) {
+            updateState();
+            commsLog.innerHTML += '<tr>' +
+                '<td colspan="3" class="commslog-data">Connection opened</td>' +
+                '</tr>';
+        };
+        socket.onclose = function (event) {
+            updateState();
+            commsLog.innerHTML += '<tr>' +
+                '<td colspan="3" class="commslog-data">Connection closed. Code: ' + htmlEscape(event.code) + '. Reason: ' + htmlEscape(event.reason) + '</td>' +
+                '</tr>';
+        };
+        socket.onerror = updateState;
+        socket.onmessage = function (event) {
+            commsLog.innerHTML += '<tr>' +
+                '<td class="commslog-server">Server</td>' +
+                '<td class="commslog-client">Client</td>' +
+                '<td class="commslog-data">' + htmlEscape(event.data) + '</td></tr>';
+        };
+    };
+
+    function htmlEscape(str) {
+        return str.toString()
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+</script>
+
+

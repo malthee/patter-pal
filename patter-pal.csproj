@@ -5,6 +5,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>patter_pal</RootNamespace>
+    <UserSecretsId>912a7586-1404-443f-a49a-5a2bb363aff7</UserSecretsId>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.33.0" />
+  </ItemGroup>
 
 </Project>
