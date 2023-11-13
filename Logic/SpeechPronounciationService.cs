@@ -30,7 +30,7 @@ namespace patter_pal.Logic
             var buffer = new byte[AppConfig.SpeechWsBuffer];
 
             // THIS IS PROBLEM, as mediarecorder does not give us PCM :c
-            using var audioInputStream = AudioInputStream.CreatePushStream(AudioStreamFormat.GetWaveFormatPCM(16000, 16, 1));
+            using var audioInputStream = AudioInputStream.CreatePushStream(AudioStreamFormat.GetDefaultInputFormat());
             using var audioConfig = AudioConfig.FromStreamInput(audioInputStream);
             using var recognizer = new SpeechRecognizer(_speechConfig, "en-US" /*TODO*/, audioConfig);
 
@@ -42,6 +42,7 @@ namespace patter_pal.Logic
                 var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
+                    audioInputStream.Write(new byte[0]); // End stream signal
                     await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
                     _logger.LogDebug("SpeechPronounciationService - WebSocket closed by client");
                 }
@@ -49,7 +50,6 @@ namespace patter_pal.Logic
                 {
                     _logger.LogDebug($"SpeechPronounciationService - Received {result.Count} bytes from WebSocket");
                     audioInputStream.Write(buffer.AsSpan(0, result.Count).ToArray());
-                    audioInputStream.Write(new byte[0]); // End stream signal
                 }
             }
 
@@ -67,6 +67,7 @@ namespace patter_pal.Logic
 
             recognizer.Recognized += async (s, e) =>
             {
+                _logger.LogDebug($"Speech recognition result: {e.Result.Reason}, {e.Result.Text}");
                 if (e.Result.Reason == ResultReason.RecognizedSpeech)
                 {
                     var pronunciationResultJson = e.Result.Properties.GetProperty(PropertyId.SpeechServiceResponse_JsonResult);
