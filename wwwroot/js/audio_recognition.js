@@ -1,4 +1,6 @@
 ﻿
+// TODO move logic from index.cshtml
+
 class AudioRecognitionStreamer {
     #socket;
     #audioContext;
