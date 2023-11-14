@@ -19,41 +19,49 @@ namespace patter_pal.Logic
             _logger = logger;
             _appConfig = appConfig;
             _speechConfig = SpeechConfig.FromSubscription(_appConfig.SpeechSubscriptionKey, _appConfig.SpeechRegion);
-            _pronunciationAssessmentConfig = new PronunciationAssessmentConfig("",  // Empty string as no topic defined beforehand
+            _pronunciationAssessmentConfig = new PronunciationAssessmentConfig(string.Empty,  // Empty string as no topic defined beforehand
                 GradingSystem.HundredMark, Granularity.Word);
             _pronunciationAssessmentConfig.EnableProsodyAssessment();
         }
 
-        public async Task StartFromWebSocket(WebSocket ws)
+        public async Task StartFromWebSocket(WebSocket ws, string language)
         {
-            _logger.LogDebug("SpeechPronounciationService - Starting from WebSocket");
+            _logger.LogDebug($"Starting from WebSocket with language {language}");
             var buffer = new byte[AppConfig.SpeechWsBuffer];
 
-            // THIS IS PROBLEM, as mediarecorder does not give us PCM :c
             using var audioInputStream = AudioInputStream.CreatePushStream(AudioStreamFormat.GetDefaultInputFormat());
             using var audioConfig = AudioConfig.FromStreamInput(audioInputStream);
-            using var recognizer = new SpeechRecognizer(_speechConfig, "en-US" /*TODO*/, audioConfig);
+            using var recognizer = new SpeechRecognizer(_speechConfig, language, audioConfig);
 
             InitRecognizer(recognizer, ws);
             await recognizer.StartContinuousRecognitionAsync();
 
-            while (ws.State == WebSocketState.Open)
+            try
             {
-                var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-                if (result.MessageType == WebSocketMessageType.Close)
+                while (ws.State == WebSocketState.Open)
                 {
-                    audioInputStream.Write(new byte[0]); // End stream signal
-                    await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
-                    _logger.LogDebug("SpeechPronounciationService - WebSocket closed by client");
-                }
-                else
-                {
-                    _logger.LogDebug($"SpeechPronounciationService - Received {result.Count} bytes from WebSocket");
-                    audioInputStream.Write(buffer.AsSpan(0, result.Count).ToArray());
+                    var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+
+                    switch (result.MessageType)
+                    {
+                        case WebSocketMessageType.Binary:
+                            _logger.LogDebug($"Received {result.Count} bytes from WebSocket");
+                            audioInputStream.Write(buffer.AsSpan(0, result.Count).ToArray());
+                            break;
+                        case WebSocketMessageType.Close:
+                            await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed", CancellationToken.None);
+                            _logger.LogDebug("WebSocket closed by client");
+                            break;
+                        default:
+                            _logger.LogWarning("Received unexpected message from WebSocket");
+                            break;
+                    }
                 }
             }
-
-            await recognizer.StopContinuousRecognitionAsync();
+            finally
+            {
+                await recognizer.StopContinuousRecognitionAsync();
+            }
         }
 
         private void InitRecognizer(SpeechRecognizer recognizer, WebSocket ws)
@@ -71,7 +79,6 @@ namespace patter_pal.Logic
                 if (e.Result.Reason == ResultReason.RecognizedSpeech)
                 {
                     var pronunciationResultJson = e.Result.Properties.GetProperty(PropertyId.SpeechServiceResponse_JsonResult);
-                    _logger.LogDebug($"Recognized: {pronunciationResultJson}");
                     await SendResultToClient(ws, pronunciationResultJson);
                 }
             };
@@ -84,8 +91,11 @@ namespace patter_pal.Logic
 
         private async Task SendResultToClient(WebSocket ws, string message)
         {
-            var messageBuffer = Encoding.UTF8.GetBytes(message);
-            await ws.SendAsync(new ArraySegment<byte>(messageBuffer, 0, messageBuffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+            if (ws.State == WebSocketState.Open)
+            {
+                var messageBuffer = Encoding.UTF8.GetBytes(message);
+                await ws.SendAsync(new ArraySegment<byte>(messageBuffer, 0, messageBuffer.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+            }
         }
     }
 }

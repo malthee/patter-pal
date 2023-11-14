@@ -11,7 +11,6 @@ builder.Services.AddSingleton(appConfig);
 builder.Services.AddSingleton<SpeechPronounciationService>();
 builder.Logging.AddConsole();
 
-
 var app = builder.Build();
 // WebSockets for Speech Recognition
 var webSocketOptions = new WebSocketOptions
@@ -26,7 +25,7 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
-else 
+else
 {
     // In dev allow localhost
     webSocketOptions.AllowedOrigins.Add("https://localhost:7067");
@@ -42,7 +41,8 @@ app.UseAuthorization();
 app.UseWebSockets(webSocketOptions);
 
 app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+       name: "speech",
+       pattern: "{controller=Speech}/{action=RecognizeWs}/{language}");
+app.MapDefaultControllerRoute();
 
 app.Run();

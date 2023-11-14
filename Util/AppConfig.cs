@@ -5,9 +5,14 @@ namespace patter_pal.Util
     public class AppConfig
     {
         public const string AppUrl = "https://patter-pal.azurewebsites.net";
-        public const string SpeechWsEndpoint = "/Speech/Ws";
-        public const int SpeechRecordTimesliceMs = 1000;
-        public const int SpeechWsBuffer = 1024 * 1000;
+        public const string SpeechWsEndpoint = "/Speech/RecognizeWs";
+        public const int TargetSampleRate = 16000; // Required by Speech SDK
+
+        // -- If one of the following values is changed, the other values must be changed accordingly --
+        public const int RecordingChunkTimeMs = 3000; // How often the audio stream is sent to the server
+        public const int RecordingBufferSize = 4 * 4096; 
+        public const int SpeechWsBuffer = 1024 * 100; 
+        // -- End --
 
         public string SpeechSubscriptionKey { get; set; } = default!;
         public string SpeechRegion { get; set; } = default!;

@@ -29,10 +29,8 @@
     </tbody>
 </table>
 
-<!-- https://medium.com/(AT)ragymorkos/gettineg-monochannel-16-bit-signed-integer-pcm-audio-samples-from-the-microphone-in-the-browser-8d4abf81164d
--->
 
-<script>
+<script> // TODO migration to audio_recognition.js
     let audioContext;
     let processor;
     let socket; // Assume socket is already connected to your server
@@ -42,7 +40,7 @@
         try {
             // Initialize Audio Context and Processor
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            processor = audioContext.createScriptProcessor(4096*4, 1, 1); // Buffer size, input channels, output channels
+            processor = audioContext.createScriptProcessor(@AppConfig.RecordingBufferSize, 1, 1); // Buffer size, input channels, output channels
 
             // Get audio stream from microphone
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -52,35 +50,51 @@
 
             processor.onaudioprocess = function (e) {
                 const inputData = e.inputBuffer.getChannelData(0);
-                const outputData = new Int16Array(inputData.length);
-
-                // Convert to 16-bit PCM
-                for (let i = 0; i < inputData.length; i++) {
-                    outputData[i] = convertFloat32ToInt16(inputData[i]);
-                }
-
-                // Add to audio buffer
-                audioBuffer.push(outputData);
+                audioBuffer.push(new Float32Array(inputData)); // Store raw float32 data to be processed later
             };
 
             // Set an interval to send audio data every few seconds
-            setInterval(sendAudioData, 3000);
+            setInterval(sendAudioData, @AppConfig.RecordingChunkTimeMs);
         } catch (error) {
-            console.error('Error accessing media devices:', error);
+            alert(error);
         }
     }
 
     function sendAudioData() {
         if (socket.readyState === WebSocket.OPEN && audioBuffer.length > 0) {
             let concatenatedBuffer = concatenateBuffers(audioBuffer);
-            socket.send(concatenatedBuffer);
+            let resampledBuffer = resampleBuffer(concatenatedBuffer, 16000); // Resample to 16kHz as supported by speech
+            let int16Buffer = convertFloat32ToInt16(resampledBuffer); // Convert to 16-bit signed integer PCM audio
+            socket.send(int16Buffer);
             audioBuffer = []; // Clear the buffer after sending
         }
     }
 
+    function resampleBuffer(buffer, targetSampleRate) {
+        if(!(audioContext?.sampleRate)){
+            console.error('Audio context not initialized, cannot resample');
+            return buffer;
+        }
+
+        const sourceSampleRate = audioContext.sampleRate;
+        const sourceLength = buffer.length;
+        const targetLength = Math.round(sourceLength * targetSampleRate / sourceSampleRate);
+        const resampledBuffer = new Float32Array(targetLength);
+
+        for (let i = 0; i < targetLength; i++) {
+            const srcIndex = i * sourceSampleRate / targetSampleRate;
+            const srcIndexFloor = Math.floor(srcIndex);
+            const srcIndexCeil = Math.min(sourceLength - 1, srcIndexFloor + 1);
+            const weight = srcIndex - srcIndexFloor;
+            resampledBuffer[i] = (1 - weight) * buffer[srcIndexFloor] + weight * buffer[srcIndexCeil];
+        }
+
+        return resampledBuffer;
+    }
+
     function concatenateBuffers(buffers) {
         let totalLength = buffers.reduce((acc, value) => acc + value.length, 0);
-        let result = new Int16Array(totalLength);
+        let result = new Float32Array(totalLength);
         let offset = 0;
 
         for (let buffer of buffers) {
@@ -88,7 +102,7 @@
             offset += buffer.length;
         }
 
-        return result.buffer;
+        return result;
     }
 
     function convertFloat32ToInt16(buffer) {
@@ -106,164 +120,8 @@
             audioContext.close();
         }
         // Close WebSocket connection if needed
-        socket?.close(3000, 'Client closed');
+        socket?.close();
     }
-
-    
-    //function mergeBuffers(channelBuffer, recordingLength) {
-    //    let result = new Float32Array(recordingLength);
-    //    let offset = 0;
-
-    //    for (let i = 0; i < channelBuffer.length; i++) {
-    //        result.set(channelBuffer[i], offset);
-    //        offset += channelBuffer[i].length;
-    //    }
-
-    //    return Array.prototype.slice.call(result);
-    //}
-
-
-    //function startRecording() {
-    //    navigator.getUserMedia = navigator.getUserMedia ||
-    //        navigator.webkitGetUserMedia ||
-    //        navigator.mozGetUserMedia ||
-    //        navigator.msGetUserMedia;
-
-    //    let audioStream;
-
-    //    if (navigator.getUserMedia) {
-    //        navigator.getUserMedia({ audio: true }, function (stream) {
-    //            audioStream = stream;
-    //        }, function (error) {
-    //            alert('Error capturing audio.');
-    //        });
-    //    }
-    //    else {
-    //        alert('getUserMedia not supported in this browser.');
-    //    }
-
-    //    // creates the an instance of audioContext
-    //    const context = window.AudioContext || window.webkitAudioContext;
-    //    const audioContext = new context();
-
-    //    // retrieve the current sample rate of microphone the browser is using
-    //    const sampleRate = audioContext.sampleRate;
-
-    //    // creates a gain node
-    //    const volume = audioContext.createGain();
-
-    //    // creates an audio node from the microphone incoming stream
-    //    const audioInput = audioContext.createMediaStreamSource(audioStream);
-
-    //    // connect the stream to the gain node
-    //    audioInput.connect(volume);
-
-    //    /* From the spec: This value controls how frequently the audioprocess event is
-    //    dispatched and how many sample-frames need to be processed each call.
-    //    Lower values for buffer size will result in a lower (better) latency.
-    //    Higher values will be necessary to avoid audio breakup and glitches */
-    //    const bufferSize = 2048;
-    //    const recorder = (audioContext.createScriptProcessor ||
-    //        audioContext.createJavaScriptNode).call(audioContext,
-    //            bufferSize,
-    //            1,
-    //            1);
-    //    const leftChannel = [];
-    //    let recordingLength = 0;
-
-    //    recorder.onaudioprocess = function (event) {
-    //        const samples = event.inputBuffer.getChannelData(0);
-
-    //        // we clone the samples
-    //        leftChannel.push(new Float32Array(samples));
-
-    //        recordingLength += bufferSize;
-    //    };
-
-    //    // we connect the recorder
-    //    volume.connect(recorder);
-
-    //    // start recording
-    //    recorder.connect(audioContext.destination);
-
-    //    const PCM32fSamples = mergeBuffers(leftChannel, recordingLength);
-    //    const PCM16iSamples = [];
-
-    //    for (let i = 0; i < PCM32fSamples.length; i++) {
-    //        let val = Math.floor(32767 * PCM32fSamples[i]);
-    //        val = Math.min(32767, val);
-    //        val = Math.max(-32768, val);
-
-    //        PCM16iSamples.push(val);
-    //    }
-    //}
-
-    //function stopRecording(){
-    //    console.log('stopped rec');
-    //    socket?.close(3000, 'Done');
-    //    recorder.disconnect();
-    //}
-
-    //import audioConverter from './js/buffer_to_wav.js';
-    //console.log(audioConverter);
-
-    //let socket;
-    //let mediaRecorder;
-    //let audioChunks = [];
-
-    //async function startRecording() {
-    //    if (!socket) {
-    //        console.error('NOT SETUP WARNING');
-    //        return;
-    //    }
-
-    //    try {
-    //        let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    //        let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-    //        let mediaRecorder = new MediaRecorder(stream, {
-    //            mimeType: 'audio/webm',
-    //            codecs: "opus",
-    //        });
-    //        mediaRecorder.start(@AppConfig.SpeechRecordTimesliceMs);
-    //        //mediaRecorder.start(5000);
-
-    //        mediaRecorder.ondataavailable = async (event) => {
-    //            if (event.data.size <= 0) return; // Ignore empty data
-
-    //            console.log('Data available:', event.data);
-
-    //            try {
-    //                let arrayBuffer = await readFileAsArrayBuffer(event.data);
-    //                let audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-
-    //                let wav = audioConverter(audioBuffer);
-    //                console.log('Converted:', wav);
-    //                socket.send(wav);
-    //            } catch (err) {
-    //                console.error('Error processing audio data:', err);
-    //            }
-    //        };
-    //    } catch (error) {
-    //        console.error('Error accessing media devices:', error);
-    //    }
-    //}
-
-    //function readFileAsArrayBuffer(blob) {
-    //    return new Promise((resolve, reject) => {
-    //        let reader = new FileReader();
-    //        reader.onload = () => resolve(reader.result);
-    //        reader.onerror = () => reject(reader.error);
-    //        reader.readAsArrayBuffer(blob);
-    //    });
-    //}
-
-
-    //function stopRecording() {
-    //    mediaRecorder?.stop();
-    //    console.log('stopped rec');
-    //    socket?.close(3000, 'Done');
-    //}
 
     var connectionUrl = document.getElementById("connectionUrl");
     var connectButton = document.getElementById("connectButton");
@@ -272,7 +130,7 @@
     var closeButton = document.getElementById("closeButton");
     var port = document.location.port ? (":" + document.location.port) : "";
 
-    connectionUrl.value = "wss://" + document.location.hostname + port + "@AppConfig.SpeechWsEndpoint";
+    connectionUrl.value = "wss://" + document.location.hostname + port + "@AppConfig.SpeechWsEndpoint" + "/en-US";
 
     function updateState() {
         function disable() {

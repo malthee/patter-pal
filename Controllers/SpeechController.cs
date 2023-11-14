@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.CognitiveServices.Speech;
-using Microsoft.CognitiveServices.Speech.Audio;
 using patter_pal.Logic;
+using System.Text.RegularExpressions;
 
 namespace patter_pal.Controllers
 {
@@ -16,18 +15,24 @@ namespace patter_pal.Controllers
             _speechPronounciationService = speechPronounciationService;
         }
 
-        public async Task Ws()
+        public async Task RecognizeWs(string language)
         {
-            if (HttpContext.WebSockets.IsWebSocketRequest)
+            if (!Regex.IsMatch(language, "^[a-zA-Z]{2}-[a-zA-Z]{2}$"))
             {
-                _logger.LogDebug("SpeechController - WebSocket started");
-                using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
-                await _speechPronounciationService.StartFromWebSocket(webSocket);    
+                _logger.LogWarning($"Invalid language format: {language}");
+                HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+                return;
             }
-            else
+
+            if (!HttpContext.WebSockets.IsWebSocketRequest)
             {
                 HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+                return;
             }
+
+            _logger.LogDebug("SpeechController - WebSocket started");
+            using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+            await _speechPronounciationService.StartFromWebSocket(webSocket, language);    
         }
     }
 }
