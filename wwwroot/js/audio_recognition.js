@@ -1,5 +1,6 @@
 ﻿
 // TODO move logic from index.cshtml
+const TARGET_SAMPLE_RATE = 16000; // As required by Azure Speech
 
 class AudioRecognitionStreamer {
     #socket;
@@ -8,19 +9,17 @@ class AudioRecognitionStreamer {
     #intervalId;
     #targetSampleRate;
 
-    constructor(socketUrl, recordingBufferSize, chunkTimeMs, targetSampleRate, onResult) {
+    constructor(socket, recordingBufferSize, chunkTimeMs, targetSampleRate, onResult) {
         this.#recordingBufferSize = recordingBufferSize;
         this.#chunkTimeMs = chunkTimeMs;
         this.#audioBuffer = []; // Stores audio data before sending
         this.#targetSampleRate = targetSampleRate;
+        this.#socket = socket;
         this.onResult = onResult;
     }
 
     async startRecording() {
-        try {
-            // Initialize WebSocket connection
-            this.#socket = new WebSocket(socketUrl);
-
+        try {     
             // Initialize Audio Context and Processor
             this.#audioContext = new (window.AudioContext || window.webkitAudioContext)();
             this.#processor = this.#audioContext.createScriptProcessor(this.#recordingBufferSize, 1, 1); // Buffer size, input channels, output channels
@@ -43,27 +42,26 @@ class AudioRecognitionStreamer {
         }
     }
 
-    setupSocket() {
-
-    }
-
     sendAudioData() {
-        if (socket.readyState === WebSocket.OPEN && audioBuffer.length > 0) {
-            let concatenatedBuffer = concatenateBuffers(audioBuffer);
-            let resampledBuffer = resampleBuffer(concatenatedBuffer, 16000); // Resample to 16kHz as supported by speech
-            let int16Buffer = convertFloat32ToInt16(resampledBuffer); // Convert to 16-bit signed integer PCM audio
-            socket.send(int16Buffer);
+        if (this.#socket.readyState === WebSocket.OPEN && audioBuffer.length > 0) {
+            // Convert to 16khz 16-bit signed integer PCM audio
+            const concatenatedBuffer = concatenateBuffers(audioBuffer);
+            const resampledBuffer = resampleBuffer(concatenatedBuffer, TARGET_SAMPLE_RATE);  
+            const int16Buffer = convertFloat32ToInt16(resampledBuffer); 
+            this.#socket.send(int16Buffer);
             audioBuffer = []; // Clear the buffer after sending
         }
     }
 
     stopRecording() {
-
+        clearInterval(this.#intervalId);
+        this.#processor?.disconnect();
+        this.#audioContext?.close();
     }
 }
 
-// --- Helper functions for audio processing ---
-// Inspired by https://medium.com/(AT)ragymorkos/gettineg-monochannel-16-bit-signed-integer-pcm-audio-samples-from-the-microphone-in-the-browser-8d4abf81164d
+// --- Helper functions for audio processing --- //
+/// Linear interpolation resampling
 function resampleBuffer(buffer, targetSampleRate) {
     if (!(audioContext?.sampleRate)) {
         console.error('Audio context not initialized, cannot resample');
@@ -86,6 +84,7 @@ function resampleBuffer(buffer, targetSampleRate) {
     return resampledBuffer;
 }
 
+/// Merge the array of buffers into one Float32Array
 function concatenateBuffers(buffers) {
     let totalLength = buffers.reduce((acc, value) => acc + value.length, 0);
     let result = new Float32Array(totalLength);
@@ -99,6 +98,7 @@ function concatenateBuffers(buffers) {
     return result;
 }
 
+/// Converts the buffer from Float32 to Int16
 function convertFloat32ToInt16(buffer) {
     let l = buffer.length;
     let buf = new Int16Array(l);
