@@ -1,12 +1,13 @@
-﻿
-// TODO move logic from index.cshtml
-
+﻿/// Records audio in the browser and sends it to the server in chunks for speech recognition
 export class AudioRecognitionStreamer {
     #socket;
     #audioContext;
     #processor;
     #intervalId;
     #targetSampleRate;
+    #recordingBufferSize;
+    #chunkTimeMs;
+    #audioBuffer;
 
     constructor(socket, recordingBufferSize, chunkTimeMs, targetSampleRate, onResult) {
         this.#recordingBufferSize = recordingBufferSize;
@@ -42,13 +43,13 @@ export class AudioRecognitionStreamer {
     }
 
     sendAudioData() {
-        if (this.#socket.readyState === WebSocket.OPEN && audioBuffer.length > 0) {
+        if (this.#socket.readyState === WebSocket.OPEN && this.#audioBuffer.length > 0) {
             // Convert to 16khz 16-bit signed integer PCM audio
-            const concatenatedBuffer = concatenateBuffers(audioBuffer);
+            const concatenatedBuffer = concatenateBuffers(this.#audioBuffer);
             const resampledBuffer = resampleBuffer(concatenatedBuffer, this.#targetSampleRate);  
             const int16Buffer = convertFloat32ToInt16(resampledBuffer); 
             this.#socket.send(int16Buffer);
-            audioBuffer = []; // Clear the buffer after sending
+            this.#audioBuffer = []; // Clear the buffer after sending
         }
     }
 
