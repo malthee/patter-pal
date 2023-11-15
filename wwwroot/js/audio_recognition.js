@@ -1,8 +1,7 @@
 ﻿
 // TODO move logic from index.cshtml
-const TARGET_SAMPLE_RATE = 16000; // As required by Azure Speech
 
-class AudioRecognitionStreamer {
+export class AudioRecognitionStreamer {
     #socket;
     #audioContext;
     #processor;
@@ -46,7 +45,7 @@ class AudioRecognitionStreamer {
         if (this.#socket.readyState === WebSocket.OPEN && audioBuffer.length > 0) {
             // Convert to 16khz 16-bit signed integer PCM audio
             const concatenatedBuffer = concatenateBuffers(audioBuffer);
-            const resampledBuffer = resampleBuffer(concatenatedBuffer, TARGET_SAMPLE_RATE);  
+            const resampledBuffer = resampleBuffer(concatenatedBuffer, this.#targetSampleRate);  
             const int16Buffer = convertFloat32ToInt16(resampledBuffer); 
             this.#socket.send(int16Buffer);
             audioBuffer = []; // Clear the buffer after sending
