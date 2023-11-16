@@ -29,6 +29,7 @@ namespace patter_pal.Controllers
         [HttpPost]
         public async Task<ActionResult<ChatMessage>> GenerateAnswer(ChatMessage message)
         {
+            // todo ex handling, evaluate using ws
             return await _conversationService.GenerateAnswer(message);
         }
     }

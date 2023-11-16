@@ -36,7 +36,7 @@ namespace patter_pal.Models
         [JsonIgnore]
         public string? LastAnswer => GetLastAnswer();
 
-        private string GetLastAnswer()
+        private string? GetLastAnswer()
         {
             if (Choices != null && Choices.Length > 0 && Choices[0]?.Message != null)
             {

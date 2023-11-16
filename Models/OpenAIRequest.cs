@@ -1,10 +1,11 @@
 ﻿using patter_pal.Util;
+using System.Text.Json.Serialization;
 
 namespace patter_pal.Models
 {
     public class OpenAiChatRequest
     {
-        public OpenAiChatRequest(string userMessage, AppConfig config, List<OpenAiMessage> history)
+        public OpenAiChatRequest(ChatMessage chatMessage, AppConfig config, List<OpenAiMessage>? history = null)
         {
             Model = config.OpenAiModel;
             Temperature = config.OpenAiTemperature;
@@ -13,23 +14,10 @@ namespace patter_pal.Models
             FrequencyPenalty = config.OpenAiFrequencyPenalty;
             PresencePenalty = config.OpenAiPresencePenalty;
 
-            Messages = history; 
-            Messages.Add(new OpenAiMessage { Content = userMessage }); 
-        }
-
-        public OpenAiChatRequest(string userMessage, AppConfig config)
-        {
-            Model = config.OpenAiModel;
-            Temperature = config.OpenAiTemperature;
-            MaxTokens = config.OpenAiMaxTokens;
-            TopP = config.OpenAiTopP;
-            FrequencyPenalty = config.OpenAiFrequencyPenalty;
-            PresencePenalty = config.OpenAiPresencePenalty;
-
-            Messages = new List<OpenAiMessage>
-            {
-                new OpenAiMessage { Content = userMessage } 
-            }; 
+            string languagePrompt = config.PromptForLanguage(chatMessage.Language);
+            Messages = history ?? 
+                new List<OpenAiMessage>(){new OpenAiMessage { Role=OpenAiMessage.ROLE_SYSTEM, Content = languagePrompt }}; // Only add prompt if no history as should already be present
+            Messages.Add(new OpenAiMessage { Content = chatMessage.Text });
         }
 
         [JsonPropertyName("model")]

@@ -21,26 +21,32 @@ namespace patter_pal.Logic
         public async Task<List<ChatMessage>> GetChatlog(Guid id)
         {
             // TODO with db
-            return new List<ChatMessage> { new ChatMessage("ASDF") };
+            return new List<ChatMessage> { new ChatMessage("ASDF", "de") };
         }
 
         public async Task<ChatMessage> GenerateAnswer(ChatMessage message)
         {
             var client = _httpClientFactory.CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _appConfig.OpenAiKey); 
-            var chatRequest = new OpenAiChatRequest(message.Text, _appConfig);
+            var chatRequest = new OpenAiChatRequest(message, _appConfig);
             // Check for message token size, may reduce (forget) initial messages
 
             var response = await client.PostAsJsonAsync(_appConfig.OpenAiEndpoint, chatRequest);
-            // TODO not working yet
+            // TODO status code handling
             response.EnsureSuccessStatusCode();
-            // Log openaiusage in db
+            
+            // TODO Log openaiusage in db
 
-            //var chatResponse = await response.Content.ReadFromJsonAsync<OpenAiChatResponse>();
-            var temp = await response.Content.ReadAsStringAsync();
+            var chatResponse = await response.Content.ReadFromJsonAsync<OpenAiChatCompletionResponse>();
+            _logger.LogDebug($"Answer from OpenAI: {chatResponse?.LastAnswer}");
 
-            // TODO put answer in db
-            return new ChatMessage(temp);
+            if(chatResponse?.LastAnswer == null)
+            {
+                throw new Exception("No answer from OpenAI");
+            }
+
+            _logger.LogDebug($"Got answer from OpenAI: {chatResponse.LastAnswer}");
+            return new ChatMessage(chatResponse.LastAnswer, message.Language); // Input language is output language
         }
     }
 }
