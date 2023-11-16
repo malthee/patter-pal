@@ -1,4 +1,6 @@
-﻿namespace patter_pal.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace patter_pal.Models
 {
     /// <summary>
     /// Model for when the user starts a chat, continues the conversation.
@@ -6,7 +8,13 @@
     /// </summary>
     public class ChatMessage
     {
-        public string? Text { get; set; }
+        public ChatMessage(string text)
+        {
+            Text = text;
+        }
+
+        public string Text { get; set; }
+
         //[NotNull] TODO with context and validation
         //public Guid? ChatId { get; set; }
 

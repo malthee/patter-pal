@@ -5,7 +5,6 @@ namespace patter_pal.Util
     public class AppConfig
     {
         public const string AppUrl = "https://patter-pal.azurewebsites.net";
-        public const string OpenAIEndpoint = "https://api.openai.com/v1/chat/completions";
         public const string SpeechWsEndpoint = "/Speech/RecognizeWs";
         public const int TargetSampleRate = 16000; // Required by Speech SDK
 
@@ -20,6 +19,7 @@ namespace patter_pal.Util
         public string SpeechVoice { get; set; } = default!;
         public string OpenAiKey { get; set; } = default!;
 
+        public string OpenAiEndpoint { get; set; } = "https://api.openai.com/v1/chat/completions";
         public string OpenAiModel { get; set; } = "gpt-3.5-turbo";
         public double OpenAiTemperature { get; set; } = 1.4;
         public int OpenAiMaxTokens { get; set; } = 256;

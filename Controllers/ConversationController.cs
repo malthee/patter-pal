@@ -6,6 +6,8 @@ namespace patter_pal.Controllers
 {
     [ApiController]
     [Route("[controller]")]
+    [Produces("application/json")]
+    [Consumes("application/json")]
     public class ConversationController : ControllerBase
     {
         private readonly ILogger<HomeController> _logger;
@@ -17,10 +19,17 @@ namespace patter_pal.Controllers
             _conversationService = conversationService;
         }
 
+        [HttpGet]
+        public async Task<ActionResult<List<ChatMessage>>> GetChatlog(Guid id)
+        {
+            // TODO
+            return await _conversationService.GetChatlog(id);
+        }
+
         [HttpPost]
         public async Task<ActionResult<ChatMessage>> GenerateAnswer(ChatMessage message)
         {
-            return Ok(new ChatMessage { Text = "ASDF" });
+            return await _conversationService.GenerateAnswer(message);
         }
     }
 }

@@ -10,7 +10,8 @@ builder.Configuration.GetSection("AppConfig").Bind(appConfig);
 builder.Services.AddSingleton(appConfig);
 builder.Services.AddSingleton<SpeechPronounciationService>();
 builder.Services.AddSingleton<ConversationService>();
-builder.Logging.AddConsole();
+//builder.Logging.AddConsole();
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 // WebSockets for Speech Recognition
