@@ -4,6 +4,9 @@ using System.Text.RegularExpressions;
 
 namespace patter_pal.Controllers
 {
+    /// <summary>
+    /// Handles the speech recognition and pronounciation comming form the client.
+    /// </summary>
     public class SpeechController : ControllerBase
     {
         private readonly ILogger<HomeController> _logger;
@@ -26,6 +29,7 @@ namespace patter_pal.Controllers
 
             if (!HttpContext.WebSockets.IsWebSocketRequest)
             {
+                _logger.LogWarning("Request is not a WebSocket request");
                 HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
                 return;
             }

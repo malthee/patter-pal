@@ -9,17 +9,16 @@ export class AudioRecognitionStreamer {
     #chunkTimeMs;
     #audioBuffer;
 
-    constructor(socket, recordingBufferSize, chunkTimeMs, targetSampleRate, onResult) {
+    constructor(socket, recordingBufferSize, chunkTimeMs, targetSampleRate) {
         this.#recordingBufferSize = recordingBufferSize;
         this.#chunkTimeMs = chunkTimeMs;
         this.#audioBuffer = []; // Stores audio data before sending
         this.#targetSampleRate = targetSampleRate;
         this.#socket = socket;
-        this.onResult = onResult;
     }
 
     async startRecording() {
-        try {     
+        try {
             // Initialize Audio Context and Processor
             this.#audioContext = new (window.AudioContext || window.webkitAudioContext)();
             this.#processor = this.#audioContext.createScriptProcessor(this.#recordingBufferSize, 1, 1); // Buffer size, input channels, output channels
@@ -36,7 +35,7 @@ export class AudioRecognitionStreamer {
             };
 
             // Set an interval to send audio data every few seconds
-            this.#intervalId = setInterval(sendAudioData, this.#chunkTimeMs);
+            this.#intervalId = setInterval(() => this.sendAudioData(), this.#chunkTimeMs);
         } catch (error) {
             alert(error);
         }
@@ -46,8 +45,8 @@ export class AudioRecognitionStreamer {
         if (this.#socket.readyState === WebSocket.OPEN && this.#audioBuffer.length > 0) {
             // Convert to 16khz 16-bit signed integer PCM audio
             const concatenatedBuffer = concatenateBuffers(this.#audioBuffer);
-            const resampledBuffer = resampleBuffer(concatenatedBuffer, this.#targetSampleRate);  
-            const int16Buffer = convertFloat32ToInt16(resampledBuffer); 
+            const resampledBuffer = resampleBuffer(concatenatedBuffer, this.#targetSampleRate, this.#audioContext);
+            const int16Buffer = convertFloat32ToInt16(resampledBuffer);
             this.#socket.send(int16Buffer);
             this.#audioBuffer = []; // Clear the buffer after sending
         }
@@ -62,7 +61,7 @@ export class AudioRecognitionStreamer {
 
 // --- Helper functions for audio processing --- //
 /// Linear interpolation resampling
-function resampleBuffer(buffer, targetSampleRate) {
+function resampleBuffer(buffer, targetSampleRate, audioContext) {
     if (!(audioContext?.sampleRate)) {
         console.error('Audio context not initialized, cannot resample');
         return buffer;

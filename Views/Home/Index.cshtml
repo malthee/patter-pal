@@ -3,216 +3,101 @@
     ViewData["Title"] = "Home Page";
 }
 
-<!-- Websocket example code -->
-<h1>WebSocket Sample Application</h1>
-<p id="stateLabel">Ready to connect...</p>
-<div>
-    <label for="connectionUrl">WebSocket Server URL:</label>
-    <input id="connectionUrl" />
-    <button id="connectButton" type="submit">Connect</button>
+<div class="vh-100-no-footer d-flex flex-column align-items-center justify-content-center">
+    <button id="micButton" type="submit" class="display-1 btn btn-outline-light rounded-circle">🎙</button>
+    <div>
+        <select class="form-select text-center" id="languageSelect">
+            @foreach (var language in LanguageConstants.Languages)
+            {
+                <option value="@language.Key" selected="@(language.Key==LanguageConstants.DefaultLanguage)">@language.Value</option>
+            }
+        </select>
+    </div>
+    <p id="stateLabel" class="text-muted text-center">Ready to connect...</p>
 </div>
-<p></p>
-<div>
-    <button id="closeButton" disabled>Close Socket</button>
-</div>
 
-<h2>Communication Log</h2>
-<table style="width: 800px">
-    <thead>
-        <tr>
-            <td style="width: 100px">From</td>
-            <td style="width: 100px">To</td>
-            <td>Data</td>
-        </tr>
-    </thead>
-    <tbody id="commsLog">
-    </tbody>
-</table>
+@section Scripts {
+    <script type="module">
+        import { HOST_URL, htmlEscape } from './js/helpers.js';
+        import { AudioRecognitionStreamer } from './js/audio_recognition.js';
 
+        const micButton = document.getElementById('micButton');
+        const stateLabel = document.getElementById('stateLabel');
+        const languageSelect = document.getElementById('languageSelect');
 
-<script> // TODO migration to audio_recognition.js
-    let audioContext;
-    let processor;
-    let socket; // Assume socket is already connected to your server
-    let audioBuffer = [];
+        let audioRecStreamer;
+        let socket;
 
-    async function startRecording() {
-        try {
-            // Initialize Audio Context and Processor
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            processor = audioContext.createScriptProcessor(@AppConfig.RecordingBufferSize, 1, 1); // Buffer size, input channels, output channels
-
-            // Get audio stream from microphone
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const source = audioContext.createMediaStreamSource(stream);
-            source.connect(processor);
-            processor.connect(audioContext.destination);
-
-            processor.onaudioprocess = function (e) {
-                const inputData = e.inputBuffer.getChannelData(0);
-                audioBuffer.push(new Float32Array(inputData)); // Store raw float32 data to be processed later
-            };
-
-            // Set an interval to send audio data every few seconds
-            setInterval(sendAudioData, @AppConfig.RecordingChunkTimeMs);
-        } catch (error) {
-            alert(error);
-        }
-    }
-
-    function sendAudioData() {
-        if (socket.readyState === WebSocket.OPEN && audioBuffer.length > 0) {
-            let concatenatedBuffer = concatenateBuffers(audioBuffer);
-            let resampledBuffer = resampleBuffer(concatenatedBuffer, 16000); // Resample to 16kHz as supported by speech
-            let int16Buffer = convertFloat32ToInt16(resampledBuffer); // Convert to 16-bit signed integer PCM audio
-            socket.send(int16Buffer);
-            audioBuffer = []; // Clear the buffer after sending
-        }
-    }
-
-    function resampleBuffer(buffer, targetSampleRate) {
-        if(!(audioContext?.sampleRate)){
-            console.error('Audio context not initialized, cannot resample');
-            return buffer;
+        function isAudioStreamRunning() {
+            return audioRecStreamer && socket?.readyState == WebSocket.OPEN;
         }
 
-        const sourceSampleRate = audioContext.sampleRate;
-        const sourceLength = buffer.length;
-        const targetLength = Math.round(sourceLength * targetSampleRate / sourceSampleRate);
-        const resampledBuffer = new Float32Array(targetLength);
+        function updateState() {
+            const isRunning = isAudioStreamRunning();
+            languageSelect.disabled = isRunning;
 
-        for (let i = 0; i < targetLength; i++) {
-            const srcIndex = i * sourceSampleRate / targetSampleRate;
-            const srcIndexFloor = Math.floor(srcIndex);
-            const srcIndexCeil = Math.min(sourceLength - 1, srcIndexFloor + 1);
-            const weight = srcIndex - srcIndexFloor;
-            resampledBuffer[i] = (1 - weight) * buffer[srcIndexFloor] + weight * buffer[srcIndexCeil];
-        }
-
-        return resampledBuffer;
-    }
-
-    function concatenateBuffers(buffers) {
-        let totalLength = buffers.reduce((acc, value) => acc + value.length, 0);
-        let result = new Float32Array(totalLength);
-        let offset = 0;
-
-        for (let buffer of buffers) {
-            result.set(buffer, offset);
-            offset += buffer.length;
-        }
-
-        return result;
-    }
-
-    function convertFloat32ToInt16(buffer) {
-        let l = buffer.length;
-        let buf = new Int16Array(l);
-        while (l--) {
-            buf[l] = Math.min(1, buffer[l]) * 0x7FFF;
-        }
-        return buf.buffer;
-    }
-
-    function stopRecording() {
-        if (processor && audioContext) {
-            processor.disconnect();
-            audioContext.close();
-        }
-        // Close WebSocket connection if needed
-        socket?.close();
-    }
-
-    var connectionUrl = document.getElementById("connectionUrl");
-    var connectButton = document.getElementById("connectButton");
-    var stateLabel = document.getElementById("stateLabel");
-    var commsLog = document.getElementById("commsLog");
-    var closeButton = document.getElementById("closeButton");
-    var port = document.location.port ? (":" + document.location.port) : "";
-
-    connectionUrl.value = "wss://" + document.location.hostname + port + "@AppConfig.SpeechWsEndpoint" + "/en-US";
-
-    function updateState() {
-        function disable() {
-            closeButton.disabled = true;
-        }
-        function enable() {
-            closeButton.disabled = false;
-        }
-
-        connectionUrl.disabled = true;
-        connectButton.disabled = true;
-
-        if (!socket) {
-            disable();
-        } else {
-            switch (socket.readyState) {
-                case WebSocket.CLOSED:
-                    stateLabel.innerHTML = "Closed";
-                    disable();
-                    connectionUrl.disabled = false;
-                    connectButton.disabled = false;
-                    break;
-                case WebSocket.CLOSING:
-                    stateLabel.innerHTML = "Closing...";
-                    disable();
-                    break;
-                case WebSocket.CONNECTING:
-                    stateLabel.innerHTML = "Connecting...";
-                    disable();
-                    break;
-                case WebSocket.OPEN:
-                    stateLabel.innerHTML = "Open";
-                    enable();
-                    break;
-                default:
-                    stateLabel.innerHTML = "Unknown WebSocket State: " + htmlEscape(socket.readyState);
-                    disable();
-                    break;
+            if (socket) {
+                switch (socket.readyState) {
+                    case WebSocket.CLOSED:
+                        stateLabel.innerHTML = "Closed";
+                        break;
+                    case WebSocket.CLOSING:
+                        stateLabel.innerHTML = "Closing...";
+                        break;
+                    case WebSocket.CONNECTING:
+                        stateLabel.innerHTML = "Connecting...";
+                        break;
+                    case WebSocket.OPEN:
+                        stateLabel.innerHTML = "Open";
+                        break;
+                    default:
+                        stateLabel.innerHTML = "Unknown WebSocket State: " + htmlEscape(socket.readyState);
+                        break;
+                }
+            } else {
+                stateLabel.innerHTML = "Ready to connect...";
             }
         }
-    }
 
-    closeButton.onclick = function () {
-        if (!socket || socket.readyState !== WebSocket.OPEN) {
-            alert("socket not connected");
+        function stopStreaming() {
+            audioRecStreamer?.stopRecording();
+            socket?.close();
+            socket = null;
+            audioRecStreamer = null;
         }
-        stopRecording();
-    };
 
-    connectButton.onclick = function () {
-        stateLabel.innerHTML = "Connecting";
-        socket = new WebSocket(connectionUrl.value);
-        startRecording();
-        socket.onopen = function (event) {
-            updateState();
-            commsLog.innerHTML += '<tr>' +
-                '<td colspan="3" class="commslog-data">Connection opened</td>' +
-                '</tr>';
-        };
-        socket.onclose = function (event) {
-            updateState();
-            commsLog.innerHTML += '<tr>' +
-                '<td colspan="3" class="commslog-data">Connection closed. Code: ' + htmlEscape(event.code) + '. Reason: ' + htmlEscape(event.reason) + '</td>' +
-                '</tr>';
-        };
-        socket.onerror = updateState;
-        socket.onmessage = function (event) {
-            commsLog.innerHTML += '<tr>' +
-                '<td class="commslog-server">Server</td>' +
-                '<td class="commslog-client">Client</td>' +
-                '<td class="commslog-data">' + htmlEscape(event.data) + '</td></tr>';
-        };
-    };
+        // --- Event Handlers --- //
 
-    function htmlEscape(str) {
-        return str.toString()
-            .replace(/&/g, '&amp;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
-    }
-</script>
+        micButton.onclick = () => {
+            if (audioRecStreamer) {
+                audioRecStreamer.stopRecording();
+                socket.close();
+                socket = null;
+                audioRecStreamer = null;
+                return;
+            }
+
+            stateLabel.innerHTML = "Connecting";
+            const connectionUrl = "wss://" + HOST_URL + "@AppConfig.SpeechWsEndpoint/" + languageSelect.value;
+            socket = new WebSocket(connectionUrl);
+            audioRecStreamer = new AudioRecognitionStreamer(socket, @AppConfig.RecordingBufferSize, @AppConfig.RecordingChunkTimeMs, @AppConfig.TargetSampleRate);
+
+            socket.onopen = (event) => {
+                // Start audio recording when the socket is ready
+                audioRecStreamer.startRecording();
+                updateState();
+            };
+            socket.onmessage = (event) => {
+                console.log(event);
+                console.log(event.data.DisplayText);
+            };
+            socket.onclose = updateState;
+            socket.onerror = (event) => {
+                stopStreaming();
+                updateState();
+            };
+        };
+    </script>
+}
 
 

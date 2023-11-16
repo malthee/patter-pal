@@ -9,6 +9,7 @@ var appConfig = new AppConfig();
 builder.Configuration.GetSection("AppConfig").Bind(appConfig);
 builder.Services.AddSingleton(appConfig);
 builder.Services.AddSingleton<SpeechPronounciationService>();
+builder.Services.AddSingleton<ConversationService>();
 builder.Logging.AddConsole();
 
 var app = builder.Build();
@@ -44,5 +45,6 @@ app.MapControllerRoute(
        name: "speech",
        pattern: "{controller=Speech}/{action=RecognizeWs}/{language}");
 app.MapDefaultControllerRoute();
+app.MapControllers();
 
 app.Run();

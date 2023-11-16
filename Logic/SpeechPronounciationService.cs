@@ -24,6 +24,7 @@ namespace patter_pal.Logic
             _pronunciationAssessmentConfig.EnableProsodyAssessment();
         }
 
+        // TODO stop when specific length is reached
         public async Task StartFromWebSocket(WebSocket ws, string language)
         {
             _logger.LogDebug($"Starting from WebSocket with language {language}");
@@ -86,6 +87,7 @@ namespace patter_pal.Logic
             recognizer.Canceled += (s, e) =>
             {
                 _logger.LogError($"Speech recognition canceled: {e.Reason}, {e.ErrorDetails}");
+                ws.Abort();
             };
         }
 
