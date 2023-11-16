@@ -22,7 +22,8 @@ namespace patter_pal.Util
         public string OpenAiEndpoint { get; set; } = "https://api.openai.com/v1/chat/completions";
         public string OpenAiModel { get; set; } = "gpt-3.5-turbo";
         public double OpenAiTemperature { get; set; } = 1.4;
-        public int OpenAiMaxTokens { get; set; } = 256;
+        public int OpenAiMaxTokens { get; set; } = 256; // For output
+        public int OpenAiMaxInputTokens { get; set; } = 1024; // gpt 3.5 turbo is 4096, reduced for computing ressources
         public double OpenAiTopP { get; set; } = 1;
         public double OpenAiFrequencyPenalty { get; set; } = 0.2;
         public double OpenAiPresencePenalty { get; set; } = 0.2;

@@ -29,10 +29,12 @@ namespace patter_pal.Logic
             var client = _httpClientFactory.CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _appConfig.OpenAiKey); 
             var chatRequest = new OpenAiChatRequest(message.Text, _appConfig);
+            // Check for message token size, may reduce (forget) initial messages
 
             var response = await client.PostAsJsonAsync(_appConfig.OpenAiEndpoint, chatRequest);
             // TODO not working yet
             response.EnsureSuccessStatusCode();
+            // Log openaiusage in db
 
             //var chatResponse = await response.Content.ReadFromJsonAsync<OpenAiChatResponse>();
             var temp = await response.Content.ReadAsStringAsync();
