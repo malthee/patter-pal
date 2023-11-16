@@ -21,8 +21,8 @@ namespace patter_pal.Models
         /// </summary>
         public string Language { get; set; }
 
-        //[NotNull] TODO with context and validation
-        //public Guid? ChatId { get; set; }
+        // TODO chatid for context
+        public Guid? ChatId { get; set; }
 
     }
 }
