@@ -7,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 var appConfig = new AppConfig();
 builder.Configuration.GetSection("AppConfig").Bind(appConfig);
+appConfig.ValidateConfigInitialized();
 builder.Services.AddSingleton(appConfig);
 builder.Services.AddSingleton<SpeechPronounciationService>();
 builder.Services.AddSingleton<ConversationService>();
