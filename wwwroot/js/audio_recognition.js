@@ -53,6 +53,7 @@ export class AudioRecognitionStreamer {
     }
 
     stopRecording() {
+        this.sendAudioData(); // Send data one more time
         clearInterval(this.#intervalId);
         this.#processor?.disconnect();
         this.#audioContext?.close();

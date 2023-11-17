@@ -69,9 +69,12 @@ namespace patter_pal.Logic
         {
             _pronunciationAssessmentConfig.ApplyTo(recognizer);
 
-            recognizer.Recognizing += (s, e) =>
+            recognizer.Recognizing += async (s, e) =>
             {
+                var pronunciationResultJson = e.Result.Properties.GetProperty(PropertyId.SpeechServiceResponse_JsonResult);
+                await SendResultToClient(ws, pronunciationResultJson);
                 _logger.LogDebug($"Recognizing: {e.Result.Text}");
+                
             };
 
             recognizer.Recognized += async (s, e) =>
@@ -79,6 +82,8 @@ namespace patter_pal.Logic
                 _logger.LogDebug($"Speech recognition result: {e.Result.Reason}, {e.Result.Text}");
                 if (e.Result.Reason == ResultReason.RecognizedSpeech)
                 {
+                    var pronounciationResult = PronunciationAssessmentResult.FromResult(e.Result);
+                    // TODO save result to db for later analysis in async task
                     var pronunciationResultJson = e.Result.Properties.GetProperty(PropertyId.SpeechServiceResponse_JsonResult);
                     await SendResultToClient(ws, pronunciationResultJson);
                 }
