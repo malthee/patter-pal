@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace patter_pal.dataservice.Interfaces
 {
-    public interface IUserProgressDataService
+    public interface IUserJourneyDataService
     {
         // TODO get evaluations of user progress like accuracy, metrics over time in different languages
     }
