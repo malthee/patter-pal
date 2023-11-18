@@ -18,7 +18,7 @@ namespace patter_pal.Controllers
             _speechPronounciationService = speechPronounciationService;
         }
 
-        public async Task RecognizeWs(string language)
+        public async Task RecognizeWs(string language, Guid? chatId = null)
         {
             if (!Regex.IsMatch(language, "^[a-zA-Z]{2}-[a-zA-Z]{2}$"))
             {
