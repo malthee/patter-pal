@@ -6,7 +6,7 @@
 <div class="vh-100-no-footer d-flex flex-column align-items-center justify-content-center">
     <div class="row">
         <button id="micButton" type="submit" class="display-1 btn btn-outline-light rounded-circle">🎙</button>
-        <p id="textOutput" class="display-3 text-center"></p>
+        <p id="textOutput" class="text-center"></p>
     </div>
     <div>
         <select class="form-select text-center" id="languageSelect">
@@ -21,7 +21,7 @@
 
 @section Scripts {
     <script type="module">
-        import { HOST_URL, htmlEscape } from './js/helpers.js';
+        import { resolveHostWebSocketURL, resolveHostURL, htmlEscape } from './js/helpers.js';
         import { fetchConversationAnswer } from './js/conversation_api.js';
         import { AudioRecognitionStreamer } from './js/audio_recognition.js';
 
@@ -30,60 +30,91 @@
         const languageSelect = document.getElementById('languageSelect');
         const textOutput = document.getElementById('textOutput'); // TODO template for text output
 
-        let audioRecStreamer;
-        let socket;
+        let audioRecStreamer = null;
+        let socket = null;
+        let closeTimeout = null;
+        let conversationPromise = null;
 
         function updateState() {
             const isRunning = audioRecStreamer && socket?.readyState == WebSocket.OPEN;
             languageSelect.disabled = isRunning;
+            micButton.disabled = closeTimeout && closeTimeout !== 0 || conversationPromise;
+
+            console.log(closeTimeout);
+            console.log(conversationPromise);
 
             if (socket) {
                 switch (socket.readyState) {
-                    case WebSocket.CLOSED:
-                        stateLabel.innerHTML = "Closed";
-                        break;
-                    case WebSocket.CLOSING:
-                        stateLabel.innerHTML = "Closing...";
-                        break;
                     case WebSocket.CONNECTING:
-                        stateLabel.innerHTML = "Connecting...";
+                        stateLabel.innerHTML = "Starting...";
                         break;
                     case WebSocket.OPEN:
-                        stateLabel.innerHTML = "Open";
+                        stateLabel.innerHTML = "Speak now...";
                         break;
                     default:
-                        stateLabel.innerHTML = "Unknown WebSocket State: " + htmlEscape(socket.readyState);
+                        console.log("STATE OTHER IN UPTATE " + socket.readyState);
                         break;
                 }
             } else {
-                stateLabel.innerHTML = "Ready to connect...";
+                stateLabel.innerHTML = "Ready to start...";
             }
         }
 
-        function stopStreaming() {
-            audioRecStreamer?.stopRecording();
+        function stopStreaming(success = true) {
+            if (!success) audioRecStreamer?.abortRecording();
+            else audioRecStreamer?.stopRecording();
+
             socket?.close();
             socket = null;
             audioRecStreamer = null;
+            updateState();
         }
 
-        function initSocket(){
-            socket.onopen = (event) => {
+        function initSocket() {
+            socket.onopen = async (event) => {
                 // Start audio recording when the socket is ready
-                audioRecStreamer.startRecording();
+                try {
+                    await audioRecStreamer.startRecording();
+                } catch (error) {
+                    alert(`This application requires your microphone permission. Please enable it in the top of your browser.\nIf it still does not work, you might have to update your browser or try a different one.`);
+                    stopStreaming(false);
+                }
                 updateState();
             };
             socket.onmessage = (event) => {
                 const result = JSON.parse(event.data);
                 console.log(result);
                 console.log(result.DisplayText ?? result.Text);
-                if (result.RecognitionStatus == 'Success') socket?.close();
+
+                if (result.RecognitionStatus) { // If any recognition status is received, stop (success or not)
+                    socket?.close();
+                    if (closeTimeout) {
+                        clearTimeout(closeTimeout);
+                        closeTimeout = null;
+                    }
+
+                    if (result.RecognitionStatus == 'Success') conversationPromise = fetchConversationAnswer(resolveHostURL("@AppConfig.ConversationEndpoint"), result.DisplayText, languageSelect.value)
+                        .then((answer) => {
+                            console.log(answer);
+                            textOutput.innerHTML = `[${answer.language}] ${answer.text}`;
+                        })
+                        .catch((error) => {
+                            console.error(error);
+                            textOutput.innerHTML = "Sorry, I didn't get that.";
+                        })
+                        .finally(() => {
+                            conversationPromise = null;
+                            updateState();
+                        })
+                }
             };
-            socket.onclose = updateState;
-            socket.onerror = (event) => {
-                console.error(`WebSocket error: ${event}`);
+            socket.onclose = (event) => {
+                console.log(`WebSocket closed: ${event.reason}`);
                 stopStreaming();
-                updateState();
+            };
+            socket.onerror = (event) => {
+                console.error(`WebSocket error: ${event.reason}`);
+                stopStreaming(false);
             };
 
         }
@@ -91,19 +122,22 @@
         // --- Event Handlers --- //
 
         micButton.onclick = () => {
-            if (audioRecStreamer) {
-                audioRecStreamer.stopRecording();
-                socket.close();
-                socket = null;
+            if (audioRecStreamer || socket?.readyState == WebSocket.OPEN) {
+                // Stop recording immediately but wait to receive message from server
+                audioRecStreamer?.stopRecording();
                 audioRecStreamer = null;
+                if(!closeTimeout) closeTimeout = setTimeout(() => {
+                    closeTimeout = null;
+                    stopStreaming();
+                }, 10000);
+                updateState();
                 return;
             }
 
-            stateLabel.innerHTML = "Connecting";
-            const connectionUrl = "wss://" + HOST_URL + "@AppConfig.SpeechWsEndpoint/" + languageSelect.value;
+            const connectionUrl = resolveHostWebSocketURL("@AppConfig.SpeechWsEndpoint" + "/" + languageSelect.value);
             socket = new WebSocket(connectionUrl);
-            initSocket();
             audioRecStreamer = new AudioRecognitionStreamer(socket, @AppConfig.RecordingBufferSize, @AppConfig.RecordingChunkTimeMs, @AppConfig.TargetSampleRate);
+            initSocket();
         };
     </script>
 }

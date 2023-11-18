@@ -1,8 +1,9 @@
-export async function fetchConversationAnswer(url, text, language) {
+export async function fetchConversationAnswer(url, text, language, id=null) {
     try {
         const body = {
             Text: text,
-            Language: language
+            Language: language,
+            Id: id
         };
 
         const response = await fetch(url, {

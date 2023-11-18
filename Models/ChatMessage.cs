@@ -8,10 +8,11 @@ namespace patter_pal.Models
     /// </summary>
     public class ChatMessage
     {
-        public ChatMessage(string text, string language)
+        public ChatMessage(string text, string language, Guid? id = null)
         {
             Text = text;
             Language = language;
+            Id = id;
         }
 
         public string Text { get; set; }
@@ -22,7 +23,7 @@ namespace patter_pal.Models
         public string Language { get; set; }
 
         // TODO chatid for context
-        public Guid? ChatId { get; set; }
+        public Guid? Id { get; set; }
 
     }
 }

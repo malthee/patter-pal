@@ -33,20 +33,27 @@ namespace patter_pal.Logic
             using var audioInputStream = AudioInputStream.CreatePushStream(AudioStreamFormat.GetDefaultInputFormat());
             using var audioConfig = AudioConfig.FromStreamInput(audioInputStream);
             using var recognizer = new SpeechRecognizer(_speechConfig, language, audioConfig);
+            using var cts = new CancellationTokenSource();
 
             InitRecognizer(recognizer, ws);
-            await recognizer.StartContinuousRecognitionAsync();
+            await recognizer.StartContinuousRecognitionAsync().ConfigureAwait(false);
 
             try
             {
                 while (ws.State == WebSocketState.Open)
                 {
-                    var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                    var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None); // Always receive, only stop when client closes or timeout occurs
 
                     switch (result.MessageType)
                     {
                         case WebSocketMessageType.Binary:
                             _logger.LogDebug($"Received {result.Count} bytes from WebSocket");
+                            if (result.Count == 1)
+                            {
+                                _logger.LogDebug("One byte received end signal.");
+                                await recognizer.StopContinuousRecognitionAsync();
+                            }
+
                             audioInputStream.Write(buffer.AsSpan(0, result.Count).ToArray());
                             break;
                         case WebSocketMessageType.Close:
@@ -59,8 +66,13 @@ namespace patter_pal.Logic
                     }
                 }
             }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error while reading from WebSocket");
+            }
             finally
             {
+                // If not stopped already, do it now
                 await recognizer.StopContinuousRecognitionAsync();
             }
         }
@@ -73,20 +85,21 @@ namespace patter_pal.Logic
             {
                 var pronunciationResultJson = e.Result.Properties.GetProperty(PropertyId.SpeechServiceResponse_JsonResult);
                 await SendResultToClient(ws, pronunciationResultJson);
-                _logger.LogDebug($"Recognizing: {e.Result.Text}");
-                
+                _logger.LogDebug($"Recognizing: {e.Result.Text}");       
             };
 
             recognizer.Recognized += async (s, e) =>
             {
                 _logger.LogDebug($"Speech recognition result: {e.Result.Reason}, {e.Result.Text}");
-                if (e.Result.Reason == ResultReason.RecognizedSpeech)
+                var pronounciationResult = PronunciationAssessmentResult.FromResult(e.Result);
+                var pronunciationResultJson = e.Result.Properties.GetProperty(PropertyId.SpeechServiceResponse_JsonResult);
+
+                if (e.Result.Reason != ResultReason.RecognizedSpeech)
                 {
-                    var pronounciationResult = PronunciationAssessmentResult.FromResult(e.Result);
-                    // TODO save result to db for later analysis in async task
-                    var pronunciationResultJson = e.Result.Properties.GetProperty(PropertyId.SpeechServiceResponse_JsonResult);
-                    await SendResultToClient(ws, pronunciationResultJson);
+                    _logger.LogDebug($"Did not recognize speech: '{e.Result.Text}', {e.Result.Reason}");
                 }
+
+                await SendResultToClient(ws, pronunciationResultJson);
             };
 
             recognizer.Canceled += (s, e) =>

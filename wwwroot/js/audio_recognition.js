@@ -18,29 +18,46 @@ export class AudioRecognitionStreamer {
     }
 
     async startRecording() {
-        try {
-            // Initialize Audio Context and Processor
-            this.#audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            this.#processor = this.#audioContext.createScriptProcessor(this.#recordingBufferSize, 1, 1); // Buffer size, input channels, output channels
+        // Initialize Audio Context and Processor
+        this.#audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        this.#processor = this.#audioContext.createScriptProcessor(this.#recordingBufferSize, 1, 1); // Buffer size, input channels, output channels
 
-            // Get audio stream from microphone
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const source = this.#audioContext.createMediaStreamSource(stream);
-            source.connect(this.#processor);
-            this.#processor.connect(this.#audioContext.destination);
+        // Get audio stream from microphone
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const source = this.#audioContext.createMediaStreamSource(stream);
+        source.connect(this.#processor);
+        this.#processor.connect(this.#audioContext.destination);
 
-            this.#processor.onaudioprocess = (e) => {
-                const inputData = e.inputBuffer.getChannelData(0);
-                this.#audioBuffer.push(new Float32Array(inputData)); // Store raw float32 data to be processed later
-            };
+        this.#processor.onaudioprocess = (e) => {
+            const inputData = e.inputBuffer.getChannelData(0);
+            this.#audioBuffer.push(new Float32Array(inputData)); // Store raw float32 data to be processed later
+        };
 
-            // Set an interval to send audio data every few seconds
-            this.#intervalId = setInterval(() => this.sendAudioData(), this.#chunkTimeMs);
-        } catch (error) {
-            alert(error);
-        }
+        // Set an interval to send audio data every few seconds
+        this.#intervalId = setInterval(() => this.sendAudioData(), this.#chunkTimeMs);
     }
 
+    /// Gracefully stops recording, signalling the end of the audio stream
+    stopRecording() {
+        clearInterval(this.#intervalId);
+        this.sendAudioData(); // Send data one more time
+        this.#socket.send(new ArrayBuffer(1)); // Mark end
+        this.#processor?.disconnect();
+        this.#audioContext?.close();
+        this.#processor = null;
+        this.#audioContext = null;
+    }
+
+    /// Aborts recording, without signalling the end of the audio stream
+    abortRecording() {
+        clearInterval(this.#intervalId);
+        this.#processor?.disconnect();
+        this.#audioContext?.close();
+        this.#processor = null;
+        this.#audioContext = null;
+    }
+
+    // --- Private methods (for browser support they are not prefixxed with #) --- //
     sendAudioData() {
         if (this.#socket.readyState === WebSocket.OPEN && this.#audioBuffer.length > 0) {
             // Convert to 16khz 16-bit signed integer PCM audio
@@ -50,13 +67,6 @@ export class AudioRecognitionStreamer {
             this.#socket.send(int16Buffer);
             this.#audioBuffer = []; // Clear the buffer after sending
         }
-    }
-
-    stopRecording() {
-        this.sendAudioData(); // Send data one more time
-        clearInterval(this.#intervalId);
-        this.#processor?.disconnect();
-        this.#audioContext?.close();
     }
 }
 

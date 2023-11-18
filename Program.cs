@@ -11,14 +11,15 @@ appConfig.ValidateConfigInitialized();
 builder.Services.AddSingleton(appConfig);
 builder.Services.AddSingleton<SpeechPronounciationService>();
 builder.Services.AddSingleton<ConversationService>();
-//builder.Logging.AddConsole();
-builder.Services.AddHttpClient();
+
+// Add client with lowered timeout for OpenAI
+builder.Services.AddHttpClient(Microsoft.Extensions.Options.Options.DefaultName, c => c.Timeout = TimeSpan.FromSeconds(appConfig.HttpTimeout));
 
 var app = builder.Build();
 // WebSockets for Speech Recognition
 var webSocketOptions = new WebSocketOptions
 {
-    KeepAliveInterval = TimeSpan.FromMinutes(2),
+    KeepAliveInterval = TimeSpan.FromMinutes(1),
     AllowedOrigins = { AppConfig.AppUrl }
 };
 
