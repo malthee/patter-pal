@@ -4,6 +4,8 @@ using Microsoft.CognitiveServices.Speech;
 using patter_pal.Util;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json;
+using patter_pal.Models;
 
 namespace patter_pal.Logic
 {
@@ -40,15 +42,15 @@ namespace patter_pal.Logic
             using var audioInputStream = AudioInputStream.CreatePushStream(AudioStreamFormat.GetDefaultInputFormat());
             using var audioConfig = AudioConfig.FromStreamInput(audioInputStream);
             using var recognizer = new SpeechRecognizer(_speechConfig, language, audioConfig);
-            using var recognitionComplete = new SemaphoreSlim(0, 1); // TODO fix long pause
 
             SpeechRecognitionResult? recognitionResult = null;
-            InitRecognizer(recognizer, ws, recognitionComplete, (r) => recognitionResult = r);
+            string? error = null;
+            InitRecognizer(recognizer, ws, (r) => recognitionResult = r, (e) => error = e);
             await recognizer.StartContinuousRecognitionAsync().ConfigureAwait(false);
 
             try
             {
-                while (ws.State == WebSocketState.Open && recognitionResult == null)
+                while (ws.State == WebSocketState.Open && recognitionResult == null && error == null)
                 {
                     var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
 
@@ -74,10 +76,6 @@ namespace patter_pal.Logic
                             _logger.LogWarning("Received unexpected message from WebSocket");
                             break;
                     }
-
-                    // Use the semaphore to wait for recognizer events. Avoid getting stuck in receive when there is no more data from the client.
-                    // CancellationToken cannot be used because it Aborts the WebSocket.
-                    //await recognitionComplete.WaitAsync(); // May add timeout
                 }
             }
             catch (Exception e)
@@ -85,25 +83,24 @@ namespace patter_pal.Logic
                 _logger.LogError(e, "Error while reading from WebSocket");
             }
 
+            _logger.LogDebug("Done with Speech Recognition.");
             return recognitionResult;
         }
 
-        private void InitRecognizer(SpeechRecognizer recognizer, WebSocket ws, SemaphoreSlim recognitionComplete, Action<SpeechRecognitionResult> onResult)
+        private void InitRecognizer(SpeechRecognizer recognizer, WebSocket ws, Action<SpeechRecognitionResult> onResult, Action<string> onError)
         {
             _pronunciationAssessmentConfig.ApplyTo(recognizer);
 
             recognizer.Recognizing += async (s, e) =>
             {
                 _logger.LogDebug($"Recognizing: {e.Result.Text}");
-                var pronunciationResultJson = e.Result.Properties.GetProperty(PropertyId.SpeechServiceResponse_JsonResult);
-                await WebSocketHelper.SendTextWhenOpen(ws, pronunciationResultJson);
-                recognitionComplete.SafeRelease();
+                var partialText = JsonSerializer.Serialize(new SocketResult<string>(e.Result.Text, SocketResultType.PartialSpeech));
+                await WebSocketHelper.SendTextWhenOpen(ws, partialText);
             };
 
             recognizer.Recognized += async (s, e) =>
             {
                 _logger.LogDebug($"Speech recognition result: {e.Result.Reason}, {e.Result.Text}");
-                var pronounciationResult = PronunciationAssessmentResult.FromResult(e.Result);
 
                 if (e.Result.Reason == ResultReason.RecognizedSpeech)
                 {
@@ -114,16 +111,20 @@ namespace patter_pal.Logic
                     _logger.LogDebug($"Did not recognize speech: '{e.Result.Reason}");
                 }
 
-                recognitionComplete.SafeRelease();
-                // Let the user know the result. Depending on it they decide to continue or not.
-                var pronunciationResultJson = e.Result.Properties.GetProperty(PropertyId.SpeechServiceResponse_JsonResult);
-                await WebSocketHelper.SendTextWhenOpen(ws, pronunciationResultJson);
+                await recognizer.StopContinuousRecognitionAsync(); // Stop recognition after first result to exit more quickly
+                var pronounciation = PronunciationAssessmentResult.FromResult(e.Result);
+                var result = new SpeechPronounciationResult(e.Result.Text, pronounciation);
+                // User gets full result
+                await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<SpeechPronounciationResult>(result, SocketResultType.SpeechResult)));
             };
 
             recognizer.Canceled += (s, e) =>
             {
-                _logger.LogError($"Speech recognition canceled: {e.Reason}, {e.ErrorDetails}");
-                recognitionComplete.SafeRelease();
+                if (e.Reason == CancellationReason.Error)
+                {
+                    _logger.LogError($"Speech recognition canceled: {e.Reason}, {e.ErrorDetails}");
+                    onError(e.ErrorDetails);
+                }
             };
         }
     }

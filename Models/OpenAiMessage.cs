@@ -6,6 +6,7 @@ namespace patter_pal.Models
     {
         public const string ROLE_SYSTEM = "system";
         public const string ROLE_USER = "user";
+        public const string ROLE_ASSISTANT = "assistant";
 
         [JsonPropertyName("role")]
         public string? Role { get; set; }

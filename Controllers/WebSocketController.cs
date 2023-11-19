@@ -48,26 +48,26 @@ namespace patter_pal.Controllers
 
             using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
             _logger.LogDebug("WebSocket started");
+
             // Azure Speech
             var reconitionResult = await _speechPronounciationService.StreamFromWebSocket(webSocket, language);    
             if(reconitionResult == null)
             { 
-                _logger.LogDebug("Returned null from SpeechPronounciationService, aborting WebSocket");
+                _logger.LogWarning("Returned null from SpeechPronounciationService, aborting WebSocket");
+                await WebSocketHelper.SendTextWhenOpen(webSocket, JsonSerializer.Serialize(new ErrorResponse("Could not analyze speech. Please try again later.")));
                 webSocket.Abort();
                 return;
             }
 
             // OpenAi
-            // TODO error handling
             var conversationAnswer = await _openAiService.StreamAndGenerateAnswer(webSocket, reconitionResult, language, chatId);
             if(conversationAnswer == null)
             {
-                _logger.LogDebug("Returned null from OpenAiService, aborting WebSocket");
+                _logger.LogWarning("Returned null from OpenAiService, aborting WebSocket");
+                await WebSocketHelper.SendTextWhenOpen(webSocket, JsonSerializer.Serialize(new ErrorResponse("Could not get response. Please try again later.")));
                 webSocket.Abort();
                 return;
             }
-            var jsonResult = JsonSerializer.Serialize(conversationAnswer);
-            await WebSocketHelper.SendTextWhenOpen(webSocket, jsonResult);
 
             await webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Finished", CancellationToken.None);
             _logger.LogDebug("WebSocket workflow finished");

@@ -1,10 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace patter_pal.Models
+﻿namespace patter_pal.Models
 {
     /// <summary>
-    /// Model for when the user starts a chat, continues the conversation.
-    /// Also used when the server answers the user.
+    /// Model for conversation chat messages between user and the assistant.
     /// </summary>
     public class ChatMessage
     {

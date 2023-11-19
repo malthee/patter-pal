@@ -30,8 +30,9 @@ namespace patter_pal.Logic
 
         public async Task<ChatMessage?> StreamAndGenerateAnswer(WebSocket ws, SpeechRecognitionResult reconitionResult, string language, Guid? chatId = null)
         {
-            string languagePrompt = PromptForLanguage(_appConfig.OpenAiSystemHelperPrompt, language);
+            _logger.LogDebug($"Generating Answer from WebSocket with language {language} {chatId}");
             /// Provide the language prompt, pronounciation assessment and the user input
+            string languagePrompt = PromptForLanguage(_appConfig.OpenAiSystemHelperPrompt, language);
             var messages = new List<OpenAiMessage>() {
                 new OpenAiMessage { Role = OpenAiMessage.ROLE_SYSTEM, Content = languagePrompt },
                 new OpenAiMessage { Role = OpenAiMessage.ROLE_SYSTEM, Content = ExtractPronounciationAssesmentString(reconitionResult) },
@@ -42,18 +43,22 @@ namespace patter_pal.Logic
             // ... messages.InsertRange(0, databasemessagesblahla)
 
             // Reduce messages to token limit if possible
-            try
-            {
-                ReduceToTokenLimit(messages);
-            }
+            try { ReduceToTokenLimit(messages); }
             catch (Exception)
             {
                 _logger.LogWarning("Could not reduce messages to token limit, aborting");
                 return null;
             }
 
-            // Client config
-            var client = _httpClientFactory.CreateClient();
+            // Performing the actual request
+            ChatMessage? result = await InnerStreamResult(ws, language, chatId, messages);
+            return result;
+        }
+
+        // Performs the HTTP request and streams the result to the client
+        private async Task<ChatMessage?> InnerStreamResult(WebSocket ws, string language, Guid? chatId, List<OpenAiMessage> messages)
+        {
+            using var client = _httpClientFactory.CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _appConfig.OpenAiKey);
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             var chatRequest = new OpenAiChatRequest(_appConfig, messages);
@@ -62,61 +67,55 @@ namespace patter_pal.Logic
             try
             {
                 _logger.LogDebug($"Sending to OpenAI: {string.Join("\n", messages)}");
-                //var response = await client.PostAsJsonAsync(_appConfig.OpenAiEndpoint, chatRequest);
-                //response.EnsureSuccessStatusCode();
-                //var chatResponse = await response.Content.ReadFromJsonAsync<OpenAiChatCompletionResponse>();
                 var requestContent = JsonContent.Create(chatRequest);
                 var request = new HttpRequestMessage(HttpMethod.Post, _appConfig.OpenAiEndpoint)
                 {
                     Content = requestContent
                 };
+
+                using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+                response.EnsureSuccessStatusCode();
                 var responseContentBuilder = new StringBuilder();
+                var sendTasks = new List<Task>();
 
-                using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
+                using var stream = await response.Content.ReadAsStreamAsync();
+                using var reader = new StreamReader(stream);
+
+                while (!reader.EndOfStream)
                 {
-                    using (var stream = await response.Content.ReadAsStreamAsync())
-                    {
-                        using (var reader = new StreamReader(stream))
-                        {
-                            while (!reader.EndOfStream)
-                            {
-                                var line = await reader.ReadLineAsync();
-                                if (string.IsNullOrEmpty(line)) continue;
-                                if (line.Equals(OpenAiChatCompletionResponse.DONE_RESPONSE) == true) break;
+                    var line = await reader.ReadLineAsync();
+                    if (string.IsNullOrEmpty(line)) continue;
+                    if (line.Equals(OpenAiChatCompletionResponse.DONE_RESPONSE) == true) break;
 
-                                try
-                                {
-                                    // Remove "data: '" from the start and "'" from the end in one statement, really weird of the OpenAi devs here
-                                    string json = line.Substring(6).Trim();
-                                    var t = WebSocketHelper.SendTextWhenOpen(ws, json); // Pass intermediate results to client, todo add tasks list or smth
-                                    var chunk = JsonSerializer.Deserialize<OpenAiChatCompletionResponse>(json);
-                                    responseContentBuilder.Append(chunk?.Content);
-                                    _logger.LogDebug($"Got chunk from OpenAI: {chunk?.Content}");
-                                }
-                                catch (Exception e)
-                                {
-                                    _logger.LogWarning(e, "Error in OpenAi response stream");
-                                }
-                            }
-                        }
+                    try
+                    {
+                        // Remove "data: '" from the start and "'" from the end in one statement, really weird of the OpenAi devs here
+                        string json = line[6..].Trim();
+                        var chunk = JsonSerializer.Deserialize<OpenAiChatCompletionResponse>(json);
+                        if (chunk == null || chunk.Content == null) throw new ApplicationException("Could not get content from OpenAi response.");
+
+                        var content = chunk.Content;
+                        sendTasks.Add(WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<string>(content, SocketResultType.PartialAnswer)))); // Pass intermediate results to client
+                        responseContentBuilder.Append(content);
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogWarning(e, "Error in deserializing OpenAi response stream");
                     }
                 }
 
                 // New id if not present
                 result = new ChatMessage(responseContentBuilder.ToString(), language, chatId ?? Guid.NewGuid());
-
-                // Todo save response to database
-                // ...
-
                 _logger.LogDebug($"Got full answer from OpenAI: {result.Text}");
+                // Todo also save response to database
+                // ...
+                // Send to user
+                await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<ChatMessage>(result, SocketResultType.AnswerResult)));
             }
             catch (HttpRequestException e)
             {
+                // Timeout etc
                 _logger.LogWarning(e, $"HttpRequestException while sending to OpenAI: {e.StatusCode}: {e.Message}");
-            }
-            catch (ApplicationException e)
-            {
-                _logger.LogWarning(e, $"ApplicationException while sending to OpenAI: {e.Message}");
             }
             catch (Exception e)
             {
@@ -200,7 +199,7 @@ namespace patter_pal.Logic
         private string ExtractPronounciationAssesmentString(SpeechRecognitionResult reconitionResult)
         {
             var pronounciationResult = PronunciationAssessmentResult.FromResult(reconitionResult);
-            var feedback = new StringBuilder("Info about the user speech to help your feedback:");
+            var feedback = new StringBuilder("Info about the user speech to help your feedback:{");
 
             // Adding overall pronunciation metrics
             feedback.Append($"Accuracy:{pronounciationResult.AccuracyScore};");
@@ -211,7 +210,7 @@ namespace patter_pal.Logic
             // Filtering and adding words with errors
             var errorWordsFeedback = pronounciationResult.Words
                 .Where(word => word.ErrorType != "None")
-                .Select(word => $"{word.Word}:{word.ErrorType}");
+                .Select(word => $"{word.Word}={word.ErrorType}");
 
             if (errorWordsFeedback.Any())
             {
@@ -220,6 +219,7 @@ namespace patter_pal.Logic
                 feedback.Append(';');
             }
 
+            feedback.Append('}');
             return feedback.ToString();
         }
     }

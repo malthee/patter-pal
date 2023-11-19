@@ -1,4 +1,5 @@
 ﻿@using patter_pal.Util;
+@using patter_pal.Models;
 @{
     ViewData["Title"] = "Home Page";
 }
@@ -30,44 +31,85 @@
         const languageSelect = document.getElementById('languageSelect');
         const textOutput = document.getElementById('textOutput'); // TODO template for text output
 
+        // Enum for socket result types
+        const SocketResultType = {
+            @foreach (var enumName in Enum.GetNames(typeof(SocketResultType)))
+            {
+                @: "@enumName": @(Convert.ToInt32(Enum.Parse(typeof(SocketResultType), enumName))),
+            }
+        };
+
         let audioRecStreamer = null;
         let socket = null;
-        let closeTimeout = null;
-        let conversationPromise = null;
 
-        function updateState() {
-            const isRunning = audioRecStreamer && socket?.readyState == WebSocket.OPEN;
-            languageSelect.disabled = isRunning;
-            micButton.disabled = closeTimeout && closeTimeout !== 0 || conversationPromise;
+        function updateConversationUi() {
+            const socketOpen = socket?.readyState == WebSocket.OPEN;
+            const isRecording = audioRecStreamer && socketOpen;
+            const isResponding = !audioRecStreamer && socketOpen;
 
-            console.log(closeTimeout);
-            console.log(conversationPromise);
+            languageSelect.disabled = socketOpen;
+            micButton.disabled = isResponding; // Can cancel recording, but not start new one when server is responding
 
-            if (socket) {
-                switch (socket.readyState) {
-                    case WebSocket.CONNECTING:
-                        stateLabel.innerHTML = "Starting...";
-                        break;
-                    case WebSocket.OPEN:
-                        stateLabel.innerHTML = "Speak now...";
-                        break;
-                    default:
-                        console.log("STATE OTHER IN UPTATE " + socket.readyState);
-                        break;
-                }
-            } else {
-                stateLabel.innerHTML = "Ready to start...";
+            console.log(`socketOpen: ${socketOpen}, isRecording: ${isRecording}, isResponding: ${isResponding}`);
+
+            switch (socket?.readyState) {
+                case WebSocket.CONNECTING:
+                    stateLabel.innerHTML = "Starting...";
+                    break;
+                case WebSocket.OPEN:
+                    stateLabel.innerHTML = "Speak now...";
+                    break;
+                default:
+                    // Closing, Closed and not initialized
+                    stateLabel.innerHTML = "Ready to start...";
+                    break;
             }
         }
 
-        function stopStreaming(success = true) {
-            if (!success) audioRecStreamer?.abortRecording();
+        function socketMessageHandler(message) {
+            try {
+                const result = JSON.parse(message.data);
+
+                if (result.RecognitionStatus == 'Success') {
+                    stopAudioStream();
+                }
+
+                switch(result?.Type){
+                    case (SocketResultType.Error):
+                        alert(result.Data); // Todo handling
+                        stopAudioStream(false);
+                        destroySocket();
+                        break;
+                    case (SocketResultType.PartialSpeech):
+                        textOutput.innerHTML = htmlEscape(result.Data);
+                        break;
+                    case (SocketResultType.SpeechResult):
+                        stopAudioStream();
+                        textOutput.innerHTML = htmlEscape(result.Data.Text);
+                        break;
+                    case (SocketResultType.PartialAnswer):
+                        textOutput.innerHTML = htmlEscape(result.Data);
+                        break;
+                    case (SocketResultType.AnswerResult):
+                        textOutput.innerHTML = htmlEscape(result.Data.Text);
+                        destroySocket(); // Final result received, close socket
+                        break;
+                    default:
+                        throw new Error(`Unknown socket result type: ${result.Type}`);
+                }
+
+                console.log(result);
+            } catch (error) {
+                console.warn(`Unhandelable socket message: ${message}`)
+            }
+        }
+
+        function stopAudioStream(graceful = true) {
+            if (!graceful) audioRecStreamer?.abortRecording();
             else audioRecStreamer?.stopRecording();
 
-            // socket?.close();
-            // socket = null;
             audioRecStreamer = null;
-            updateState();
+            updateConversationUi();
         }
 
         function initSocket() {
@@ -77,40 +119,32 @@
                     await audioRecStreamer.startRecording();
                 } catch (error) {
                     alert(`This application requires your microphone permission. Please enable it in the top of your browser.\nIf it still does not work, you might have to update your browser or try a different one.`);
-                    stopStreaming(false);
+                    stopAudioStream(false);
                 }
-                updateState();
+                updateConversationUi();
             };
-            socket.onmessage = (event) => {
-                console.log(event);
-                const result = JSON.parse(event.data);
-                console.log(result);
-                console.log(result.DisplayText ?? result.Text);
-                if(result.DisplayText) stopStreaming(); // signal end of audio stream to server
-            };
+            socket.onmessage = socketMessageHandler;
             socket.onclose = (event) => {
                 console.log(`WebSocket closed ${event.reason}`);
-                stopStreaming();
+                // Closed, no need to do graceful shutdown
+                stopAudioStream(false);
             };
             socket.onerror = (event) => {
                 console.error(`WebSocket error ${event.reason}`);
-                stopStreaming(false);
+                stopAudioStream(false);
             };
+        }
 
+        function destroySocket() {
+            socket?.close();
+            socket = null;
         }
 
         // --- Event Handlers --- //
 
         micButton.onclick = () => {
             if (audioRecStreamer || socket?.readyState == WebSocket.OPEN) {
-                // Stop recording immediately but wait to receive message from server
-                audioRecStreamer?.stopRecording();
-                audioRecStreamer = null;
-                if(!closeTimeout) closeTimeout = setTimeout(() => {
-                    closeTimeout = null;
-                    stopStreaming();
-                }, 10000);
-                updateState();
+                stopAudioStream();
                 return;
             }
 

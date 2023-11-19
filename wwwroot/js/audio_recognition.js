@@ -42,10 +42,7 @@ export class AudioRecognitionStreamer {
         clearInterval(this.#intervalId);
         this.sendAudioData(); // Send data one more time
         this.#socket.send(new ArrayBuffer(1)); // Mark end
-        this.#processor?.disconnect();
-        this.#audioContext?.close();
-        this.#processor = null;
-        this.#audioContext = null;
+        this.abortRecording();
     }
 
     /// Aborts recording, without signalling the end of the audio stream
@@ -55,18 +52,19 @@ export class AudioRecognitionStreamer {
         this.#audioContext?.close();
         this.#processor = null;
         this.#audioContext = null;
+        this.#audioBuffer = [];
     }
 
-    // --- Private methods (for browser support they are not prefixxed with #) --- //
+    // --- Private methods (since not fully supported by browser yet, they are not prefixxed with #) --- //
     sendAudioData() {
         if (this.#socket.readyState === WebSocket.OPEN && this.#audioBuffer.length > 0) {
-            // Convert to 16khz 16-bit signed integer PCM audio
+            // Convert to supported audio format
             const concatenatedBuffer = concatenateBuffers(this.#audioBuffer);
             const resampledBuffer = resampleBuffer(concatenatedBuffer, this.#targetSampleRate, this.#audioContext);
             const int16Buffer = convertFloat32ToInt16(resampledBuffer);
             this.#socket.send(int16Buffer);
             this.#audioBuffer = []; // Clear the buffer after sending
-        }
+        } 
     }
 }
 
