@@ -64,8 +64,8 @@
             if (!success) audioRecStreamer?.abortRecording();
             else audioRecStreamer?.stopRecording();
 
-            socket?.close();
-            socket = null;
+            // socket?.close();
+            // socket = null;
             audioRecStreamer = null;
             updateState();
         }
@@ -82,38 +82,18 @@
                 updateState();
             };
             socket.onmessage = (event) => {
+                console.log(event);
                 const result = JSON.parse(event.data);
                 console.log(result);
                 console.log(result.DisplayText ?? result.Text);
-
-                if (result.RecognitionStatus) { // If any recognition status is received, stop (success or not)
-                    socket?.close();
-                    if (closeTimeout) {
-                        clearTimeout(closeTimeout);
-                        closeTimeout = null;
-                    }
-
-                    if (result.RecognitionStatus == 'Success') conversationPromise = fetchConversationAnswer(resolveHostURL("@AppConfig.ConversationEndpoint"), result.DisplayText, languageSelect.value)
-                        .then((answer) => {
-                            console.log(answer);
-                            textOutput.innerHTML = `[${answer.language}] ${answer.text}`;
-                        })
-                        .catch((error) => {
-                            console.error(error);
-                            textOutput.innerHTML = "Sorry, I didn't get that.";
-                        })
-                        .finally(() => {
-                            conversationPromise = null;
-                            updateState();
-                        })
-                }
+                if(result.DisplayText) stopStreaming(); // signal end of audio stream to server
             };
             socket.onclose = (event) => {
-                console.log(`WebSocket closed: ${event.reason}`);
+                console.log(`WebSocket closed ${event.reason}`);
                 stopStreaming();
             };
             socket.onerror = (event) => {
-                console.error(`WebSocket error: ${event.reason}`);
+                console.error(`WebSocket error ${event.reason}`);
                 stopStreaming(false);
             };
 
@@ -134,7 +114,7 @@
                 return;
             }
 
-            const connectionUrl = resolveHostWebSocketURL("@AppConfig.SpeechWsEndpoint" + "/" + languageSelect.value);
+            const connectionUrl = resolveHostWebSocketURL("@AppConfig.ConversationWebSocket" + "/" + languageSelect.value); // TODO optional guid existing chat
             socket = new WebSocket(connectionUrl);
             audioRecStreamer = new AudioRecognitionStreamer(socket, @AppConfig.RecordingBufferSize, @AppConfig.RecordingChunkTimeMs, @AppConfig.TargetSampleRate);
             initSocket();

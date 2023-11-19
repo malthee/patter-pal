@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using patter_pal.Logic;
 using patter_pal.Util;
 
@@ -11,12 +12,14 @@ appConfig.ValidateConfigInitialized();
 builder.Services.AddSingleton(appConfig);
 builder.Services.AddSingleton<SpeechPronounciationService>();
 builder.Services.AddSingleton<ConversationService>();
+builder.Services.AddSingleton<OpenAiService>();
 
 // Add client with lowered timeout for OpenAI
-builder.Services.AddHttpClient(Microsoft.Extensions.Options.Options.DefaultName, c => c.Timeout = TimeSpan.FromSeconds(appConfig.HttpTimeout));
+builder.Services.AddHttpClient(Options.DefaultName, c => c.Timeout = TimeSpan.FromSeconds(appConfig.HttpTimeout));
 
 var app = builder.Build();
-// WebSockets for Speech Recognition
+
+// WebSockets for live speech recognition and results
 var webSocketOptions = new WebSocketOptions
 {
     KeepAliveInterval = TimeSpan.FromMinutes(1),
@@ -38,15 +41,13 @@ else
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
 app.UseAuthorization();
-
 app.UseWebSockets(webSocketOptions);
 
 app.MapControllerRoute(
-       name: "speech",
-       pattern: "{controller=Speech}/{action=RecognizeWs}/{language}");
+       name: "WebSocket",
+       pattern: "{controller=WebSocket}/{action=StartConversation}/{language}/{chatId?}");
 app.MapDefaultControllerRoute();
 app.MapControllers();
 

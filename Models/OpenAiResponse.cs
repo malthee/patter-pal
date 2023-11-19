@@ -5,14 +5,15 @@ namespace patter_pal.Models
 {
     public class OpenAiChatCompletionResponse
     {
-        public OpenAiChatCompletionResponse(string id, string @object, long created, string model, OpenAiChoice[] choices, OpenAiUsage usage)
+        public const string DONE_RESPONSE = "data: [DONE]";
+
+        public OpenAiChatCompletionResponse(string id, string @object, long created, string model, OpenAiChoice[] choices)
         {
             Id = id;
             Object = @object;
             Created = created;
             Model = model;
             Choices = choices;
-            Usage = usage;
         }
 
         [JsonPropertyName("id")]
@@ -30,42 +31,30 @@ namespace patter_pal.Models
         [JsonPropertyName("choices")]
         public OpenAiChoice[] Choices { get; set; }
 
-        [JsonPropertyName("usage")]
-        public OpenAiUsage Usage { get; set; }
-
         [JsonIgnore]
-        public string? LastAnswer => GetLastAnswer();
-
-        private string? GetLastAnswer()
-        {
-            if (Choices != null && Choices.Length > 0 && Choices[0]?.Message != null)
-            {
-                return Choices[0].Message.Content;
-            }
-
-            return null;
-        }
+        public string? Content => Choices.FirstOrDefault()?.Delta?.Content;
     }
 
     public class OpenAiChoice
     {
-    public OpenAiChoice(int index, OpenAiMessage message, string finishReason)
+    public OpenAiChoice(int index, OpenAiMessage delta, string finishReason)
     {
         Index = index;
-        Message = message;
+        Delta = delta;
         FinishReason = finishReason;
     }
 
     [JsonPropertyName("index")]
     public int Index { get; set; }
 
-    [JsonPropertyName("message")]
-    public OpenAiMessage Message { get; set; }
+    [JsonPropertyName("delta")]
+    public OpenAiMessage? Delta { get; set; }
 
     [JsonPropertyName("finish_reason")]
     public string FinishReason { get; set; }
     }
 
+    // Not supported in streaming yet
     public class OpenAiUsage
     {
         public OpenAiUsage(int promptTokens, int completionTokens, int totalTokens)

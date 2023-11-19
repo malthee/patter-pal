@@ -5,19 +5,15 @@ namespace patter_pal.Models
 {
     public class OpenAiChatRequest
     {
-        public OpenAiChatRequest(ChatMessage chatMessage, AppConfig config, List<OpenAiMessage>? history = null)
+        public OpenAiChatRequest(AppConfig config, List<OpenAiMessage> messages)
         {
             Model = config.OpenAiModel;
             Temperature = config.OpenAiTemperature;
-            MaxTokens = config.OpenAiMaxTokens;
+            MaxTokens = config.OpenAiMaxOutputTokens;
             TopP = config.OpenAiTopP;
             FrequencyPenalty = config.OpenAiFrequencyPenalty;
             PresencePenalty = config.OpenAiPresencePenalty;
-
-            string languagePrompt = config.PromptForLanguage(chatMessage.Language);
-            Messages = history ?? 
-                new List<OpenAiMessage>(){new OpenAiMessage { Role=OpenAiMessage.ROLE_SYSTEM, Content = languagePrompt }}; // Only add prompt if no history as should already be present
-            Messages.Add(new OpenAiMessage { Content = chatMessage.Text });
+            Messages = messages;
         }
 
         [JsonPropertyName("model")]
@@ -40,5 +36,8 @@ namespace patter_pal.Models
 
         [JsonPropertyName("presence_penalty")]
         public double PresencePenalty { get; set; }
+
+        [JsonPropertyName("stream")]
+        public bool Stream { get; set; } = true; // Stream the result, so we can get intermediate results
     }
 }
