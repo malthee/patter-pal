@@ -25,4 +25,57 @@ html, body {
     font-size: 5rem;
     height: 9rem;
     width: 9rem;
+    position: relative;
+}
+
+    #micButton.active {
+        animation: micPulseAnimation 2s infinite ease-in-out, micColorChangeAnimation 2s infinite ease-in-out;
+    }
+
+#languageSelectContainer {
+    transition: opacity 0.5s ease, max-height 1.5s ease;
+    max-height: 60px;
+    opacity: 1;
+}
+
+    #languageSelectContainer.fade-out {
+        opacity: 0;
+        transition: opacity 0.5s ease, max-height 1.5s ease;
+        max-height: 0;
+        z-index: 1;
+    }
+
+/* Subtle pulsing effect */
+@keyframes micPulseAnimation {
+    0%, 100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05); /* Less expansion for a smoother effect */
+    }
+}
+/* Softer color change effect */
+@keyframes micColorChangeAnimation {
+    0%, 100% {
+        background-color: #FFF;
+        border-color: #FFF; /* Original color */
+    }
+
+    50% {
+        background-color: #FF8A8A;
+        border-color: #FF8A8A; /* Softer shade of red */
+    }
+}
+
+.speaker-img {
+    font-size: 30px; /* Size of the emoji */
+}
+
+.left .speaker-img {
+    margin-right: 10px; /* Space between the left emoji and the bubble */
+}
+
+.right .speaker-img {
+    margin-left: 10px; /* Space between the right emoji and the bubble */
 }

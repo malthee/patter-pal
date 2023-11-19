@@ -105,17 +105,18 @@ namespace patter_pal.Logic
                 if (e.Result.Reason == ResultReason.RecognizedSpeech)
                 {
                     onResult(e.Result);
+                    await recognizer.StopContinuousRecognitionAsync(); // Stop recognition after first result to exit more quickly
+                    var pronounciation = PronunciationAssessmentResult.FromResult(e.Result);
+                    var result = new SpeechPronounciationResult(e.Result.Text, pronounciation);
+                    // User gets full result
+                    await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<SpeechPronounciationResult>(result, SocketResultType.SpeechResult)));
                 }
                 else
                 {
                     _logger.LogDebug($"Did not recognize speech: '{e.Result.Reason}");
+                    var errorResponse = new ErrorResponse("Could not recognize speech. The recording might be too short.");
+                    await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<ErrorResponse>(errorResponse, SocketResultType.Error)));
                 }
-
-                await recognizer.StopContinuousRecognitionAsync(); // Stop recognition after first result to exit more quickly
-                var pronounciation = PronunciationAssessmentResult.FromResult(e.Result);
-                var result = new SpeechPronounciationResult(e.Result.Text, pronounciation);
-                // User gets full result
-                await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<SpeechPronounciationResult>(result, SocketResultType.SpeechResult)));
             };
 
             recognizer.Canceled += (s, e) =>

@@ -48,6 +48,8 @@ namespace patter_pal.Controllers
 
             using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
             _logger.LogDebug("WebSocket started");
+            await Task.Delay(5000);
+            // uncomment for gui testing return;
 
             // Azure Speech
             var reconitionResult = await _speechPronounciationService.StreamFromWebSocket(webSocket, language);    

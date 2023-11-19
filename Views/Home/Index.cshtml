@@ -4,20 +4,57 @@
     ViewData["Title"] = "Home Page";
 }
 
-<div class="vh-100-no-footer d-flex flex-column align-items-center justify-content-center">
-    <div class="row">
-        <button id="micButton" type="submit" class="display-1 btn btn-outline-light rounded-circle">🎙</button>
-        <p id="textOutput" class="text-center"></p>
+<div class="row vh-100-no-footer align-items-start align-items-md-center justify-content-center g-4">
+    <!-- Toggle button for the left column -->
+    <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#leftMenu" aria-expanded="false" aria-controls="leftMenu">
+        Toggle Menu todo
+    </button>
+
+    <!-- Left column for list menu -->
+    <div class="col-lg-3 collapse show overflow-auto" id="leftMenu">
+        <div class="list-group">
+            <a href="#" class="list-group-item list-group-item-action active">bla bla bla - en-US</a>
+            <a href="#" class="list-group-item list-group-item-action">bla bla bla - en-US</a>
+            <a href="#" class="list-group-item list-group-item-action">bla bla bla - en-US</a>
+        </div>
     </div>
-    <div>
-        <select class="form-select text-center" id="languageSelect">
-            @foreach (var language in LanguageConstants.Languages)
-            {
-                <option value="@language.Key" selected="@(language.Key==LanguageConstants.DefaultLanguage)">@language.Value</option>
-            }
-        </select>
+
+    <!-- Middle column for microphone, language selector, and state label -->
+    <div class="col-12 col-md-6 col-lg-3 text-center">
+        <button id="micButton" type="submit" class="display-1 btn btn-outline-light rounded-circle border-4">
+            <span>🎙</span>
+        </button>
+        <div id="languageSelectContainer" class="pt-3 fade-in">
+            <select class="form-select form-select-sm text-center" id="languageSelect">
+                @foreach (var language in LanguageConstants.Languages)
+                {
+                    <option value="@language.Key" selected="@(language.Key==LanguageConstants.DefaultLanguage)">@language.Value</option>
+                }
+            </select>
+        </div>
+        <p id="stateLabel" class="text-muted text-center">Ready to connect...</p>
     </div>
-    <p id="stateLabel" class="text-muted text-center">Ready to connect...</p>
+
+    <!-- Right column for text bubbles -->
+    <div class="col-lg-4 justify-content-center overflow-auto">
+        <div class="d-flex align-items-center mb-3">
+            <span class="speaker-img left">😁</span>
+            <div class="bg-light rounded-5 ms-2 p-2">
+                <p id="textOutput" class="mb-0 text-break">
+                    Aaaaa bbbb cccc 
+                    Aaaaa bbbb cccc 
+                    Aaaaa bbbb cccc 
+                    Aaaaa bbbb cccc 
+                </p>
+            </div>
+        </div>
+        <div class="d-flex align-items-center justify-content-end">
+            <div class="bg-primary text-white rounded-3 me-2 p-2">
+                <p class="mb-0 text-break">Short answer like this</p>
+            </div>
+            <span class="speaker-img right">😀</span>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -29,15 +66,15 @@
         const micButton = document.getElementById('micButton');
         const stateLabel = document.getElementById('stateLabel');
         const languageSelect = document.getElementById('languageSelect');
+        const languageSelectContainer = document.getElementById('languageSelectContainer');
         const textOutput = document.getElementById('textOutput'); // TODO template for text output
 
         // Enum for socket result types
         const SocketResultType = {
-            @foreach (var enumName in Enum.GetNames(typeof(SocketResultType)))
-            {
-                @: "@enumName": @(Convert.ToInt32(Enum.Parse(typeof(SocketResultType), enumName))),
-            }
-        };
+        @foreach (var enumName in Enum.GetNames(typeof(SocketResultType)))
+        {
+            @: "@enumName": @(Convert.ToInt32(Enum.Parse(typeof(SocketResultType), enumName))),
+        }};
 
         let audioRecStreamer = null;
         let socket = null;
@@ -48,6 +85,9 @@
             const isResponding = !audioRecStreamer && socketOpen;
 
             languageSelect.disabled = socketOpen;
+            languageSelectContainer.classList.toggle('fade-out', socketOpen);
+
+            micButton.classList.toggle('active', isRecording);
             micButton.disabled = isResponding; // Can cancel recording, but not start new one when server is responding
 
             console.log(`socketOpen: ${socketOpen}, isRecording: ${isRecording}, isResponding: ${isResponding}`);
@@ -70,13 +110,10 @@
             try {
                 const result = JSON.parse(message.data);
 
-                if (result.RecognitionStatus == 'Success') {
-                    stopAudioStream();
-                }
-
-                switch(result?.Type){
+                switch (result?.Type) {
                     case (SocketResultType.Error):
-                        alert(result.Data); // Todo handling
+                        if (result.Data.Message) alert(result.Data.Message); // Todo handling
+                        console.error(result.Data);
                         stopAudioStream(false);
                         destroySocket();
                         break;
