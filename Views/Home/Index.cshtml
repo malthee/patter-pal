@@ -1,5 +1,6 @@
 ﻿@using patter_pal.Util;
 @using patter_pal.Models;
+@using patter_pal.Logic;
 @{
     ViewData["Title"] = "Home Page";
 }
@@ -7,6 +8,22 @@
 <div class="fixed-top text-end mt-4 me-4">
     <a href="#" title="Toggle History" class="text-decoration-none border-4 rounded-circle bg-light display-4" type="button" data-bs-toggle="collapse" data-bs-target="#leftMenu" aria-expanded="false" aria-controls="leftMenu">📃</a>
     <a href="#" title="Show Stats" class="text-decoration-none display-4 border-4 rounded-circle bg-light">📊</a> <!-- TODO stats -->
+    
+    <!-- TODO: macl make this pretty pls :c -->
+    @if (Model.UserEmail != null)
+    {
+        <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post">
+            @Html.AntiForgeryToken()
+
+            <button type="submit">Logout</button>
+        </form>
+        <br />
+        <a>Oida hey @Model.UserEmail</a>
+    }
+    else{
+
+        <a asp-controller="Auth" asp-action="ExternalLogin" asp-route-provider="Google">Login with Google</a>
+    }
 </div>
 <div class="row vh-100-no-footer align-items-start align-items-md-center justify-content-center g-4">
     <!-- Left column for list menu -->

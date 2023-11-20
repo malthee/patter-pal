@@ -1,4 +1,8 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.Extensions.Options;
+using patter_pal.dataservice.Interfaces;
+using patter_pal.dataservice.Mock;
 using patter_pal.Logic;
 using patter_pal.Util;
 
@@ -13,6 +17,20 @@ builder.Services.AddSingleton(appConfig);
 builder.Services.AddSingleton<SpeechPronounciationService>();
 builder.Services.AddSingleton<ConversationService>();
 builder.Services.AddSingleton<OpenAiService>();
+builder.Services.AddSingleton<UserService>();
+builder.Services.AddSingleton<IUserJourneyDataService, MockUserJourneyDataService>();
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+})
+.AddCookie()
+.AddGoogle(options =>
+{
+    options.ClientId = appConfig.GoogleOAuthClientID;
+    options.ClientSecret = appConfig.GoogleOAuthClientSecret;
+});
+
 
 // Add client with lowered timeout for OpenAI
 builder.Services.AddHttpClient(Options.DefaultName, c => c.Timeout = TimeSpan.FromSeconds(appConfig.HttpTimeout));
@@ -39,6 +57,8 @@ else
     webSocketOptions.AllowedOrigins.Add("http://localhost:5189");
 }
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
