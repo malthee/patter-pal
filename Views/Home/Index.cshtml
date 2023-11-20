@@ -4,12 +4,11 @@
     ViewData["Title"] = "Home Page";
 }
 
+<div class="fixed-top text-end mt-4 me-4">
+    <a href="#" title="Toggle History" class="text-decoration-none border-4 rounded-circle bg-light display-4" type="button" data-bs-toggle="collapse" data-bs-target="#leftMenu" aria-expanded="false" aria-controls="leftMenu">📃</a>
+    <a href="#" title="Show Stats" class="text-decoration-none display-4 border-4 rounded-circle bg-light">📊</a> <!-- TODO stats -->
+</div>
 <div class="row vh-100-no-footer align-items-start align-items-md-center justify-content-center g-4">
-    <!-- Toggle button for the left column -->
-    <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#leftMenu" aria-expanded="false" aria-controls="leftMenu">
-        Toggle Menu todo
-    </button>
-
     <!-- Left column for list menu -->
     <div class="col-lg-3 collapse show overflow-auto" id="leftMenu">
         <div class="list-group">
@@ -20,12 +19,12 @@
     </div>
 
     <!-- Middle column for microphone, language selector, and state label -->
-    <div class="col-12 col-md-6 col-lg-3 text-center">
-        <button id="micButton" type="submit" class="display-1 btn btn-outline-light rounded-circle border-4">
+    <div class="col-12 col-lg-3 text-center">
+        <button id="micButton" type="button" title="Start Recording" class="btn btn-light rounded-circle border-4">
             <span>🎙</span>
         </button>
         <div id="languageSelectContainer" class="pt-3 fade-in">
-            <select class="form-select form-select-sm text-center" id="languageSelect">
+            <select class="form-select text-center" id="languageSelect">
                 @foreach (var language in LanguageConstants.Languages)
                 {
                     <option value="@language.Key" selected="@(language.Key==LanguageConstants.DefaultLanguage)">@language.Value</option>
@@ -41,10 +40,10 @@
             <span class="speaker-img left">😁</span>
             <div class="bg-light rounded-5 ms-2 p-2">
                 <p id="textOutput" class="mb-0 text-break">
-                    Aaaaa bbbb cccc 
-                    Aaaaa bbbb cccc 
-                    Aaaaa bbbb cccc 
-                    Aaaaa bbbb cccc 
+                    Aaaaa bbbb cccc
+                    Aaaaa bbbb cccc
+                    Aaaaa bbbb cccc
+                    Aaaaa bbbb cccc
                 </p>
             </div>
         </div>
@@ -92,19 +91,44 @@
 
             console.log(`socketOpen: ${socketOpen}, isRecording: ${isRecording}, isResponding: ${isResponding}`);
 
-            switch (socket?.readyState) {
-                case WebSocket.CONNECTING:
-                    stateLabel.innerHTML = "Starting...";
-                    break;
-                case WebSocket.OPEN:
-                    stateLabel.innerHTML = "Speak now...";
-                    break;
-                default:
-                    // Closing, Closed and not initialized
-                    stateLabel.innerHTML = "Ready to start...";
-                    break;
+            if (socketOpen) {
+                if (isRecording) {
+                    stateLabel.innerHTML = "Listening...";
+                } else {
+                    stateLabel.innerHTML = "Analyzing...";
+                }
+            } else {
+                stateLabel.innerHTML = "Ready to start...";
             }
         }
+
+        function stopAudioStream(graceful = true) {
+            if (!graceful) audioRecStreamer?.abortRecording();
+            else audioRecStreamer?.stopRecording();
+
+            audioRecStreamer = null;
+            updateConversationUi();
+        }
+
+        function destroySocket() {
+            socket?.close();
+            socket = null;
+            updateConversationUi();
+        }
+
+        // --- Event Handlers --- //
+
+        micButton.onclick = () => {
+            if (audioRecStreamer || socket?.readyState == WebSocket.OPEN) {
+                stopAudioStream();
+                return;
+            }
+
+            const connectionUrl = resolveHostWebSocketURL("@AppConfig.ConversationWebSocket" + "/" + languageSelect.value); // TODO optional guid existing chat
+            socket = new WebSocket(connectionUrl);
+            audioRecStreamer = new AudioRecognitionStreamer(socket, @AppConfig.RecordingBufferSize, @AppConfig.RecordingChunkTimeMs, @AppConfig.TargetSampleRate);
+            initSocket();
+        };
 
         function socketMessageHandler(message) {
             try {
@@ -141,14 +165,6 @@
             }
         }
 
-        function stopAudioStream(graceful = true) {
-            if (!graceful) audioRecStreamer?.abortRecording();
-            else audioRecStreamer?.stopRecording();
-
-            audioRecStreamer = null;
-            updateConversationUi();
-        }
-
         function initSocket() {
             socket.onopen = async (event) => {
                 // Start audio recording when the socket is ready
@@ -157,6 +173,7 @@
                 } catch (error) {
                     alert(`This application requires your microphone permission. Please enable it in the top of your browser.\nIf it still does not work, you might have to update your browser or try a different one.`);
                     stopAudioStream(false);
+                    destroySocket();
                 }
                 updateConversationUi();
             };
@@ -169,27 +186,10 @@
             socket.onerror = (event) => {
                 console.error(`WebSocket error ${event.reason}`);
                 stopAudioStream(false);
+                destroySocket();
             };
         }
 
-        function destroySocket() {
-            socket?.close();
-            socket = null;
-        }
-
-        // --- Event Handlers --- //
-
-        micButton.onclick = () => {
-            if (audioRecStreamer || socket?.readyState == WebSocket.OPEN) {
-                stopAudioStream();
-                return;
-            }
-
-            const connectionUrl = resolveHostWebSocketURL("@AppConfig.ConversationWebSocket" + "/" + languageSelect.value); // TODO optional guid existing chat
-            socket = new WebSocket(connectionUrl);
-            audioRecStreamer = new AudioRecognitionStreamer(socket, @AppConfig.RecordingBufferSize, @AppConfig.RecordingChunkTimeMs, @AppConfig.TargetSampleRate);
-            initSocket();
-        };
     </script>
 }
 
