@@ -10,8 +10,9 @@
 </div>
 <div class="row vh-100-no-footer align-items-start align-items-md-center justify-content-center g-4">
     <!-- Left column for list menu -->
-    <div class="col-lg-3 collapse show overflow-auto align-self-end align-self-md-center" id="leftMenu">
+    <div class="max-height-500 col-lg-3 collapse show overflow-auto align-self-end align-self-lg-center" id="leftMenu">
         <div class="list-group">
+            <!-- todo link to new chat, link asp other page -->
             <a href="#" class="list-group-item list-group-item-action active">bla bla bla - en-US</a>
             <a href="#" class="list-group-item list-group-item-action">bla bla bla - en-US</a>
             <a href="#" class="list-group-item list-group-item-action">bla bla bla - en-US</a>
@@ -19,7 +20,7 @@
     </div>
 
     <!-- Middle column for microphone, language selector, and state label -->
-    <div class="col-12 col-lg-3 text-center align-self-end align-self-md-center">
+    <div class="max-height-500 col-12 col-lg-3 mt-2 text-center align-self-end align-self-lg-center">
         <button id="micButton" type="button" title="Start Recording" class="btn btn-light rounded-circle border-4">
             <span>🎙</span>
         </button>
@@ -35,21 +36,24 @@
     </div>
 
     <!-- Right column for text bubbles -->
-    <div class="col-lg-4 justify-content-center overflow-auto">
-        <div class="d-flex align-items-center mb-3">
+    <div id="textBubbleContainer" class="max-height-500 col-lg-4 align-self-start align-self-lg-center justify-content-center overflow-auto">
+        <!-- Bubble templates -->
+        <div id="leftBubbleTemplate" class="d-none d-flex align-items-center mb-3">
             <span class="speaker-img left">😁</span>
-            <div class="bg-light rounded-5 ms-2 p-2">
-                <p id="textOutput" class="mb-0 text-break">
-                    Aaaaa bbbb cccc
-                    Aaaaa bbbb cccc
-                    Aaaaa bbbb cccc
-                    Aaaaa bbbb cccc
-                </p>
+            <div class="bg-primary text-white rounded-3 ms-2 p-2">
+                <p class="mb-0 text-break bubble-text"></p>
             </div>
         </div>
-        <div class="d-flex align-items-center justify-content-end">
-            <div class="bg-primary text-white rounded-3 me-2 p-2">
-                <p class="mb-0 text-break">Short answer like this</p>
+        <div id="rightBubbleTemplate" class="d-none d-flex align-items-center justify-content-end mb-3">
+            <div class="bg-light rounded-3 me-2 p-2">
+                <p class="mb-0 text-break bubble-text"></p>
+            </div>
+            <span class="speaker-img right">😀</span>
+        </div>
+        <!-- Only show when no convo TODO -->
+        <div class="d-flex align-items-center justify-content-end mb-3">
+            <div class="bg-light rounded-3 me-2 p-2">
+                <p class="mb-0 text-break bubble-text">Start talking with Patter Pal by pressing the 🎙 button.</p>
             </div>
             <span class="speaker-img right">😀</span>
         </div>
@@ -66,7 +70,9 @@
         const stateLabel = document.getElementById('stateLabel');
         const languageSelect = document.getElementById('languageSelect');
         const languageSelectContainer = document.getElementById('languageSelectContainer');
-        const textOutput = document.getElementById('textOutput'); // TODO template for text output
+        const textBubbleContainer = document.getElementById('textBubbleContainer');
+        const leftBubbleTemplate = document.getElementById('leftBubbleTemplate');
+        const rightBubbleTemplate = document.getElementById('rightBubbleTemplate');
 
         // Enum for socket result types
         const SocketResultType = {
@@ -77,6 +83,8 @@
 
         let audioRecStreamer = null;
         let socket = null;
+        let currentSpeechOutputBubble = null;
+        let currentAnswerOutputBubble = null;
 
         function updateConversationUi() {
             const socketOpen = socket?.readyState == WebSocket.OPEN;
@@ -116,6 +124,18 @@
             updateConversationUi();
         }
 
+        function resetOutputBubbles() {
+            currentSpeechOutputBubble = leftBubbleTemplate.cloneNode(true);
+            currentAnswerOutputBubble = rightBubbleTemplate.cloneNode(true);
+        }
+
+        function setBubbleText(bubble, append = false) {
+            return (text) => {
+                const textElement = bubble.querySelector('.bubble-text');
+                textElement.innerHTML = append ? textElement.innerHTML + text : text;
+            };
+        }
+
         // --- Event Handlers --- //
 
         micButton.onclick = () => {
@@ -142,17 +162,19 @@
                         destroySocket();
                         break;
                     case (SocketResultType.PartialSpeech):
-                        textOutput.innerHTML = htmlEscape(result.Data);
+                        if (currentSpeechOutputBubble.parentNode === null) textBubbleContainer.prepend(currentSpeechOutputBubble);
+                        setBubbleText(currentSpeechOutputBubble)(htmlEscape(result.Data));
                         break;
                     case (SocketResultType.SpeechResult):
                         stopAudioStream();
-                        textOutput.innerHTML = htmlEscape(result.Data.Text);
+                        setBubbleText(currentSpeechOutputBubble)(htmlEscape(result.Data.Text));
                         break;
                     case (SocketResultType.PartialAnswer):
-                        textOutput.innerHTML = htmlEscape(result.Data);
+                        if (currentAnswerOutputBubble.parentNode === null) textBubbleContainer.prepend(currentAnswerOutputBubble);
+                        setBubbleText(currentAnswerOutputBubble, true)(htmlEscape(result.Data)); // OpenAi streams with partial results, have to append
                         break;
                     case (SocketResultType.AnswerResult):
-                        textOutput.innerHTML = htmlEscape(result.Data.Text);
+                        setBubbleText(currentAnswerOutputBubble)(htmlEscape(result.Data.Text));
                         destroySocket(); // Final result received, close socket
                         break;
                     default:
@@ -175,6 +197,7 @@
                     stopAudioStream(false);
                     destroySocket();
                 }
+                resetOutputBubbles();
                 updateConversationUi();
             };
             socket.onmessage = socketMessageHandler;

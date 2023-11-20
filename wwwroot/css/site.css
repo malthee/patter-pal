@@ -98,3 +98,7 @@ body {
 .right .speaker-img {
     margin-left: 10px; /* Space between the right emoji and the bubble */
 }
+
+.max-height-500 {
+    max-height: 500px;
+}
