@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "patter-pal", "patter-pal.cs
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "patter-pal.dataservice", "patter-pal.dataservice\patter-pal.dataservice.csproj", "{E22BE31A-A7F7-4269-95C3-5976160CD19D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "patter-pal.domain", "patter-pal.domain\patter-pal.domain.csproj", "{A0FA1B0A-0A84-4E9B-95B4-94A8288E1922}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{E22BE31A-A7F7-4269-95C3-5976160CD19D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E22BE31A-A7F7-4269-95C3-5976160CD19D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E22BE31A-A7F7-4269-95C3-5976160CD19D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A0FA1B0A-0A84-4E9B-95B4-94A8288E1922}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A0FA1B0A-0A84-4E9B-95B4-94A8288E1922}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A0FA1B0A-0A84-4E9B-95B4-94A8288E1922}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A0FA1B0A-0A84-4E9B-95B4-94A8288E1922}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

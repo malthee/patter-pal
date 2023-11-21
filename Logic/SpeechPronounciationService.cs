@@ -6,6 +6,8 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using patter_pal.Models;
+using static patter_pal.Models.SpeechPronounciationResult;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace patter_pal.Logic
 {
@@ -45,7 +47,7 @@ namespace patter_pal.Logic
 
             SpeechRecognitionResult? recognitionResult = null;
             string? error = null;
-            InitRecognizer(recognizer, ws, (r) => recognitionResult = r, (e) => error = e);
+            InitRecognizer(recognizer, ws, (r) => recognitionResult ??= r, (e) => error ??= e);
             await recognizer.StartContinuousRecognitionAsync().ConfigureAwait(false);
 
             try
@@ -107,7 +109,13 @@ namespace patter_pal.Logic
                     onResult(e.Result);
                     await recognizer.StopContinuousRecognitionAsync(); // Stop recognition after first result to exit more quickly
                     var pronounciation = PronunciationAssessmentResult.FromResult(e.Result);
-                    var result = new SpeechPronounciationResult(e.Result.Text, pronounciation);
+                    var result = new SpeechPronounciationResult(e.Result.Text,
+                        pronounciation.AccuracyScore,
+                        pronounciation.FluencyScore,
+                        pronounciation.CompletenessScore,
+                        pronounciation.PronunciationScore,
+                        pronounciation.Words.Select(w => new Word(w.Word, w.AccuracyScore, w.ErrorType)).ToList()
+                    );
                     // User gets full result
                     await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<SpeechPronounciationResult>(result, SocketResultType.SpeechResult)));
                 }

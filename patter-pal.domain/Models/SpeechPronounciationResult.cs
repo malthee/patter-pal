@@ -1,5 +1,4 @@
-﻿using Microsoft.CognitiveServices.Speech.PronunciationAssessment;
-
+﻿
 namespace patter_pal.Models
 {
     public class SpeechPronounciationResult
@@ -18,14 +17,14 @@ namespace patter_pal.Models
             public string? ErrorType { get; set; }
         }
 
-        public SpeechPronounciationResult(string text, PronunciationAssessmentResult par)
+        public SpeechPronounciationResult(string text, double accuracyScore, double fluencyScore, double completenessScore, double pronunciationScore, List<Word> words)
         {
             Text = text;
-            AccuracyScore = par.AccuracyScore;
-            FluencyScore = par.FluencyScore;
-            CompletenessScore = par.CompletenessScore;
-            PronunciationScore = par.PronunciationScore;
-            Words = par.Words.Select(w => new Word(w.Word, w.AccuracyScore, w.ErrorType)).ToList();
+            AccuracyScore = accuracyScore;
+            FluencyScore = fluencyScore;
+            CompletenessScore = completenessScore;
+            PronunciationScore = pronunciationScore;
+            Words = words;
         }
 
         public string Text { get; set; }

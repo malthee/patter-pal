@@ -81,8 +81,11 @@
             @: "@enumName": @(Convert.ToInt32(Enum.Parse(typeof(SocketResultType), enumName))),
         }};
 
+        const cachedAudioUrls = new Map();
         let audioRecStreamer = null;
+        let audioPlayer = null;
         let socket = null;
+        let currentChatId = null;
         let currentSpeechOutputBubble = null;
         let currentAnswerOutputBubble = null;
 
@@ -95,27 +98,22 @@
             languageSelectContainer.classList.toggle('fade-out', socketOpen);
 
             micButton.classList.toggle('active', isRecording);
-            micButton.disabled = isResponding; // Can cancel recording, but not start new one when server is responding
+            micButton.disabled = isResponding && !audioPlayer; // Can cancel recording and audio, but not start new one when server is responding
 
-            console.log(`socketOpen: ${socketOpen}, isRecording: ${isRecording}, isResponding: ${isResponding}`);
+            // TODO remove
+            console.log(`socketOpen: ${socketOpen}, isRecording: ${isRecording}, isResponding: ${isResponding}, audioPlayer: ${audioPlayer}`);
 
             if (socketOpen) {
                 if (isRecording) {
                     stateLabel.innerHTML = "Listening...";
+                } else if (isResponding || audioPlayer) {
+                    stateLabel.innerHTML = "Responding...";
                 } else {
                     stateLabel.innerHTML = "Analyzing...";
                 }
             } else {
                 stateLabel.innerHTML = "Ready to start...";
             }
-        }
-
-        function scrollTextBubbleContainer() {
-            // Either top or bottom depending on flex-wrap
-            let flexWrapStyle = window.getComputedStyle(textBubbleContainer).flexWrap;
-
-            // scrollHeight is either negative or positive depending on flex-wrap
-            textBubbleContainer.scrollTo({ top: textBubbleContainer.scrollHeight * (flexWrapStyle === 'wrap' ? 1 : -1), behavior: 'smooth' });
         }
 
         function stopAudioStream(graceful = true) {
@@ -127,9 +125,26 @@
         }
 
         function destroySocket() {
-            socket?.close();
+            if (!socket) return;
+            socket.close();
             socket = null;
             updateConversationUi();
+        }
+
+        function destroyAudioPlayer() {
+            if(!audioPlayer) return;
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
+            audioPlayer = null;
+            updateConversationUi();
+        }
+
+        function scrollTextBubbleContainer() {
+            // Either top or bottom depending on flex-wrap
+            let flexWrapStyle = window.getComputedStyle(textBubbleContainer).flexWrap;
+
+            // scrollHeight is either negative or positive depending on flex-wrap
+            textBubbleContainer.scrollTo({ top: textBubbleContainer.scrollHeight * (flexWrapStyle === 'wrap' ? 1 : -1), behavior: 'smooth' });
         }
 
         function resetOutputBubbles() {
@@ -156,9 +171,14 @@
 
         micButton.onclick = () => {
             if (audioRecStreamer || socket?.readyState == WebSocket.OPEN) {
+                // Cancel recording
                 stopAudioStream();
+                updateConversationUi();
                 return;
             }
+
+            // Cancel audio playback
+            destroyAudioPlayer();
 
             const connectionUrl = resolveHostWebSocketURL("@AppConfig.ConversationWebSocket" + "/" + languageSelect.value); // TODO optional guid existing chat
             socket = new WebSocket(connectionUrl);
@@ -168,8 +188,30 @@
 
         function socketMessageHandler(message) {
             try {
-                const result = JSON.parse(message.data);
+                // Audio synthesis
+                if (message.data instanceof Blob) {
+                    destroySocket(); // Final result received, close socket
+                    const audioBlob = message.data;
+                    const audioUrl = URL.createObjectURL(audioBlob);
 
+                    audioPlayer = new Audio(audioUrl);
+                    updateConversationUi();
+                    cachedAudioUrls.set(currentChatId, audioUrl);
+
+                    audioPlayer.play()
+                        .catch(e => {
+                            console.error('Error playing audio:', e);
+                            alert('Cannot play audio in your browser. Your browser might be updated or we are missing your permissions to play audio.');
+                            destroyAudioPlayer();
+                        });
+
+                    audioPlayer.onended = () => {
+                        destroyAudioPlayer();
+                    };
+                    return;
+                }
+
+                const result = JSON.parse(message.data);
                 switch (result?.Type) {
                     case (SocketResultType.Error):
                         if (result.Data.Message) alert(result.Data.Message); // Todo handling
@@ -190,20 +232,22 @@
                         setBubbleText(currentAnswerOutputBubble, true)(htmlEscape(result.Data)); // OpenAi streams with partial results, have to append
                         break;
                     case (SocketResultType.AnswerResult):
+                        currentChatId = result.Data.Id;
                         setBubbleText(currentAnswerOutputBubble)(htmlEscape(result.Data.Text));
-                        destroySocket(); // Final result received, close socket
                         break;
                     default:
                         throw new Error(`Unknown socket result type: ${result.Type}`);
                 }
 
-                console.log(result);
+                console.log(result); // TODO remove
             } catch (error) {
-                console.warn(`Unhandelable socket message: ${message}`)
+                console.warn(`Unhandelable socket message: ${error}`)
+                console.warn(message);
             }
         }
 
         function initSocket() {
+            socket.onmessage = socketMessageHandler;
             socket.onopen = async (event) => {
                 // Start audio recording when the socket is ready
                 try {
@@ -216,19 +260,17 @@
                 resetOutputBubbles();
                 updateConversationUi();
             };
-            socket.onmessage = socketMessageHandler;
             socket.onclose = (event) => {
-                console.log(`WebSocket closed ${event.reason}`);
+                console.log(`WebSocket closed: ${event.reason}`);
                 // Closed, no need to do graceful shutdown
                 stopAudioStream(false);
             };
             socket.onerror = (event) => {
-                console.error(`WebSocket error ${event.reason}`);
+                console.error(`WebSocket Error: ${event.reason}`);
                 stopAudioStream(false);
                 destroySocket();
             };
         }
-
     </script>
 }
 

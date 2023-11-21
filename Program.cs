@@ -13,6 +13,7 @@ builder.Services.AddSingleton(appConfig);
 builder.Services.AddSingleton<SpeechPronounciationService>();
 builder.Services.AddSingleton<ConversationService>();
 builder.Services.AddSingleton<OpenAiService>();
+builder.Services.AddSingleton<SpeechSynthesisService>();
 
 // Add client with lowered timeout for OpenAI
 builder.Services.AddHttpClient(Options.DefaultName, c => c.Timeout = TimeSpan.FromSeconds(appConfig.HttpTimeout));
@@ -47,7 +48,7 @@ app.UseWebSockets(webSocketOptions);
 
 app.MapControllerRoute(
        name: "WebSocket",
-       pattern: "{controller=WebSocket}/{action=StartConversation}/{language}/{chatId?}");
+       pattern: "{controller=WebSocket}/{action=StartConversation}/{language}/{conversationId?}");
 app.MapDefaultControllerRoute();
 app.MapControllers();
 

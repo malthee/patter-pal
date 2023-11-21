@@ -2,11 +2,13 @@
 {
     public class ErrorResponse
     {
+        // TODO integrate
         public enum ErrorCode
         {
             OpenAiLimitReached = 3,
             SpeechLimitReached = 4,
             NoSpeechRecognized = 5,
+            NoAnswerFound = 6
             // todo..
         }
 

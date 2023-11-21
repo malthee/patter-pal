@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -10,9 +10,13 @@
 
   <ItemGroup>
     <Compile Remove="patter-pal.dataservice\**" />
+    <Compile Remove="patter-pal.domain\**" />
     <Content Remove="patter-pal.dataservice\**" />
+    <Content Remove="patter-pal.domain\**" />
     <EmbeddedResource Remove="patter-pal.dataservice\**" />
+    <EmbeddedResource Remove="patter-pal.domain\**" />
     <None Remove="patter-pal.dataservice\**" />
+    <None Remove="patter-pal.domain\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -21,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="patter-pal.dataservice\patter-pal.dataservice.csproj" />
+    <ProjectReference Include="patter-pal.domain\patter-pal.domain.csproj" />
   </ItemGroup>
 
 </Project>

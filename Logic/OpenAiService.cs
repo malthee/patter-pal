@@ -28,10 +28,10 @@ namespace patter_pal.Logic
             _httpClientFactory = httpClientFactory;
         }
 
-        public async Task<ChatMessage?> StreamAndGenerateAnswer(WebSocket ws, SpeechRecognitionResult reconitionResult, string language, Guid? chatId = null)
+        public async Task<ChatMessage?> StreamAndGenerateAnswer(WebSocket ws, SpeechRecognitionResult reconitionResult, string language, Guid? conversationId = null)
         {
-            _logger.LogDebug($"Generating Answer from WebSocket with language {language} {chatId}");
-            /// Provide the language prompt, pronounciation assessment and the user input
+            _logger.LogDebug($"Generating Answer from WebSocket with language {language} {conversationId}");
+            // Provide the language prompt, pronounciation assessment and the user input
             string languagePrompt = PromptForLanguage(_appConfig.OpenAiSystemHelperPrompt, language);
             var messages = new List<OpenAiMessage>() {
                 new OpenAiMessage { Role = OpenAiMessage.ROLE_SYSTEM, Content = languagePrompt },
@@ -51,12 +51,12 @@ namespace patter_pal.Logic
             }
 
             // Performing the actual request
-            ChatMessage? result = await InnerStreamResult(ws, language, chatId, messages);
+            ChatMessage? result = await InnerStreamResult(ws, language, conversationId, messages);
             return result;
         }
 
         // Performs the HTTP request and streams the result to the client
-        private async Task<ChatMessage?> InnerStreamResult(WebSocket ws, string language, Guid? chatId, List<OpenAiMessage> messages)
+        private async Task<ChatMessage?> InnerStreamResult(WebSocket ws, string language, Guid? conversationId, List<OpenAiMessage> messages)
         {
             using var client = _httpClientFactory.CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _appConfig.OpenAiKey);
@@ -81,7 +81,7 @@ namespace patter_pal.Logic
                 using var stream = await response.Content.ReadAsStreamAsync();
                 using var reader = new StreamReader(stream);
 
-                while (!reader.EndOfStream)
+                while (!reader.EndOfStream && ws.State == WebSocketState.Open)
                 {
                     var line = await reader.ReadLineAsync();
                     if (string.IsNullOrEmpty(line)) continue;
@@ -105,7 +105,7 @@ namespace patter_pal.Logic
                 }
 
                 // New id if not present
-                result = new ChatMessage(responseContentBuilder.ToString(), language, chatId ?? Guid.NewGuid());
+                result = new ChatMessage(responseContentBuilder.ToString(), language, Guid.NewGuid(), conversationId ?? Guid.NewGuid());
                 _logger.LogDebug($"Got full answer from OpenAI: {result.Text}");
                 // Todo also save response to database
                 // ...
@@ -199,7 +199,7 @@ namespace patter_pal.Logic
         private string ExtractPronounciationAssesmentString(SpeechRecognitionResult reconitionResult)
         {
             var pronounciationResult = PronunciationAssessmentResult.FromResult(reconitionResult);
-            var feedback = new StringBuilder("Info about the user speech to help your feedback:{");
+            var feedback = new StringBuilder("Metrics about user speech:{");
 
             // Adding overall pronunciation metrics
             feedback.Append($"Accuracy:{pronounciationResult.AccuracyScore};");

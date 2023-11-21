@@ -11,4 +11,8 @@
     <Folder Include="Azure\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\patter-pal.domain\patter-pal.domain.csproj" />
+  </ItemGroup>
+
 </Project>
