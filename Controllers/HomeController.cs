@@ -41,7 +41,7 @@ namespace patter_pal.Controllers
             await _userService.LoginUser(email);
             var model = new Model
             {
-                UserEmail = _userService.UserData?.Email
+                UserEmail = _userService.UserData?.Id
             };
             return View(model);
         }
@@ -51,7 +51,7 @@ namespace patter_pal.Controllers
         {
             var model = new Model
             {
-                UserEmail = _userService.UserData?.Email
+                UserEmail = _userService.UserData?.Id
             };
             return View(model);
         }

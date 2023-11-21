@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.Extensions.Options;
+using patter_pal.dataservice.Azure;
 using patter_pal.dataservice.Interfaces;
 using patter_pal.dataservice.Mock;
 using patter_pal.Logic;
@@ -13,6 +14,8 @@ builder.Services.AddControllersWithViews();
 var appConfig = new AppConfig();
 builder.Configuration.GetSection("AppConfig").Bind(appConfig);
 appConfig.ValidateConfigInitialized();
+AppConfig.Instance = appConfig;
+builder.Services.AddSingleton<CosmosService>(sp => new CosmosService(AppConfig.Instance.DbConnectionString));
 builder.Services.AddSingleton(appConfig);
 builder.Services.AddSingleton<SpeechPronounciationService>();
 builder.Services.AddSingleton<ConversationService>();
@@ -79,5 +82,11 @@ app.MapControllerRoute(
        pattern: "{controller=WebSocket}/{action=StartConversation}/{language}/{conversationId?}");
 app.MapDefaultControllerRoute();
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var cosmosService = scope.ServiceProvider.GetService<CosmosService>()!;
+    await cosmosService.InitializeDatabaseAndContainerAsync();
+}
 
 app.Run();

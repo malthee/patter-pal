@@ -16,7 +16,8 @@ namespace patter_pal.dataservice.Interfaces
         /// <param name="email"></param>
         /// <returns></returns>
         Task<UserJourneyData> Persist(string email);
-        
+        Task<UserJourneyData> Persist(UserJourneyData userJourneyData);
+
         // TODO get evaluations of user progress like accuracy, metrics over time in different languages
     }
 }
