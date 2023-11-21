@@ -30,6 +30,10 @@ builder.Services.AddAuthentication(options =>
     options.ClientId = appConfig.GoogleOAuthClientID;
     options.ClientSecret = appConfig.GoogleOAuthClientSecret;
 });
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("LoggedInPolicy", policy => policy.RequireAuthenticatedUser());
+});
 
 
 // Add client with lowered timeout for OpenAI

@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using patter_pal.Controllers;
 using patter_pal.Logic;
@@ -7,6 +8,7 @@ using patter_pal.Logic;
 /// <summary>
 /// Authentification endpoints (currently only through 3rd parties).
 /// </summary>
+[AllowAnonymous]
 public class AuthController : Controller
 {
     private readonly UserService _userService;
@@ -20,7 +22,7 @@ public class AuthController : Controller
     public IActionResult ExternalLogin(string provider)
     {
         // Set the callback URL to the ExternalLoginCallback action
-        var redirectUrl = Url.Action(nameof(ExternalLoginCallback), "Auth", new { provider });
+        var redirectUrl = Url.Action(nameof(ExternalLoginCallback), "Auth");
         var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
 
         // Challenge the external provider
@@ -36,7 +38,7 @@ public class AuthController : Controller
         {
             //TODO: handle error
             //return RedirectToAction(nameof(Login));
-            return RedirectToAction(nameof(HomeController.Index));
+            return RedirectToAction("Index", "Home");
         }
 
         // Get the user's email (you can customize this based on your needs)
@@ -48,7 +50,7 @@ public class AuthController : Controller
         await HttpContext.SignOutAsync("Cookies");
 
         // Redirect to the appropriate page after successful login
-        return RedirectToAction("Index", "Home");
+        return RedirectToAction("App", "Home");
     }
 
     [HttpPost]

@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using patter_pal.Logic;
 using patter_pal.Models;
 using System.Diagnostics;
+using System.Security.Claims;
 
 namespace patter_pal.Controllers
 {
@@ -9,6 +12,7 @@ namespace patter_pal.Controllers
     {
         public string? UserEmail { get; set; }
     }
+    
     public class HomeController : Controller
     {
         private readonly UserService _userService;
@@ -20,6 +24,29 @@ namespace patter_pal.Controllers
             _userService = userService;
         }
 
+        [Authorize(Policy = "LoggedInPolicy")]
+        public async Task<IActionResult> App()
+        {
+            var info = await HttpContext.AuthenticateAsync("Cookies");
+            if (info == null)
+            {
+                //TODO: handle error
+                //return RedirectToAction(nameof(Login));
+                return RedirectToAction("Index", "Home");
+            }
+
+            // Get the user's email (you can customize this based on your needs)
+            string email = info.Principal?.FindFirstValue(ClaimTypes.Email) ?? "";
+
+            await _userService.LoginUser(email);
+            var model = new Model
+            {
+                UserEmail = _userService.UserData?.Email
+            };
+            return View(model);
+        }
+
+        [AllowAnonymous]
         public IActionResult Index()
         {
             var model = new Model
@@ -29,11 +56,13 @@ namespace patter_pal.Controllers
             return View(model);
         }
 
+        [AllowAnonymous]
         public IActionResult Privacy()
         {
             return View();
         }
 
+        [AllowAnonymous]
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

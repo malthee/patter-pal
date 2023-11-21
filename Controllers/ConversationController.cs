@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using patter_pal.Logic;
 using patter_pal.Models;
 
@@ -8,6 +9,7 @@ namespace patter_pal.Controllers
     [Route("[controller]")]
     [Produces("application/json")]
     [Consumes("application/json")]
+    [Authorize(Policy = "LoggedInPolicy")]
     public class ConversationController : ControllerBase
     {
         private readonly ILogger<HomeController> _logger;

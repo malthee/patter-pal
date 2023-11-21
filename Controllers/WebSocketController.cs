@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using patter_pal.Logic;
 using patter_pal.Models;
 using patter_pal.Util;
@@ -11,6 +12,7 @@ namespace patter_pal.Controllers
     /// <summary>
     /// Handles the speech recognition and pronounciation comming form the client.
     /// </summary>
+    [Authorize(Policy = "LoggedInPolicy")]
     public class WebSocketController : ControllerBase
     {
         private readonly ILogger<HomeController> _logger;

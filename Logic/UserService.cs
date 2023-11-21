@@ -17,7 +17,7 @@ namespace patter_pal.Logic
             _userJourneyDataService = userJourneyDataService;
         }
 
-        public bool HasUserData() => UserData != null;
+        public bool IsLoggedIn() => UserData != null;
 
         /// <summary>
         /// Logs in user with provided <paramref name="email"/>.
