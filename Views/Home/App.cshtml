@@ -1,0 +1,287 @@
+﻿@using patter_pal.Util;
+@using patter_pal.Models;
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+@if (Model.UserEmail != null)
+{
+    <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post">
+        @Html.AntiForgeryToken()
+
+        <button type="submit">Logout</button>
+    </form>
+    <br />
+    <a>Oida hey @Model.UserEmail</a>
+}
+
+<div class="fixed-top text-end mt-4 me-4">
+    <a href="#" title="Toggle History" class="text-decoration-none border-4 rounded-circle bg-light display-4" type="button" data-bs-toggle="collapse" data-bs-target="#leftMenu" aria-expanded="false" aria-controls="leftMenu">📃</a>
+    <a href="#" title="Show Stats" class="text-decoration-none display-4 border-4 rounded-circle bg-light">📊</a> <!-- TODO stats -->
+</div>
+<div class="row vh-100-no-footer align-items-start align-items-md-center justify-content-center g-4">
+    <!-- Left column for list menu -->
+    <div class="max-height-500 col-12 col-lg-3 collapse show overflow-auto align-self-end align-self-lg-center" id="leftMenu">
+        <div class="list-group">
+            <!-- todo link to new chat, link asp other page -->
+            <a href="#" class="list-group-item list-group-item-action active">bla bla bla - en-US</a>
+            <a href="#" class="list-group-item list-group-item-action">bla bla bla - en-US</a>
+            <a href="#" class="list-group-item list-group-item-action">bla bla bla - en-US</a>
+        </div>
+    </div>
+
+    <!-- Middle column for microphone, language selector, and state label -->
+    <div class="max-height-500 col-12 col-lg-3 mt-5 text-center align-self-end align-self-lg-center">
+        <button id="micButton" type="button" title="Start Recording" class="btn btn-light rounded-circle border-4">
+            <span>🎙</span>
+        </button>
+        <div id="languageSelectContainer" class="pt-3 fade-in">
+            <select class="form-select text-center" id="languageSelect">
+                @foreach (var language in LanguageConstants.Languages)
+                {
+                    <option value="@language.Key" selected="@(language.Key==LanguageConstants.DefaultLanguage)">@language.Value</option>
+                }
+            </select>
+        </div>
+        <p id="stateLabel" class="text-muted text-center">Ready to connect...</p>
+    </div>
+
+    <!-- Right column for text bubbles -->
+    <div id="textBubbleContainer" class="max-height-500 col-lg-5 d-flex align-self-start align-self-lg-center justify-content-center flex-wrap-reverse flex-lg-wrap overflow-auto">
+        <!-- Bubble templates -->
+        <div id="leftBubbleTemplate" class="d-none d-flex w-100 align-items-center mb-3">
+            <span class="speaker-img left">😁</span>
+            <div class="bg-primary text-white rounded-3 ms-2 p-2">
+                <p class="mb-0 text-break bubble-text"></p>
+            </div>
+        </div>
+        <div id="rightBubbleTemplate" class="d-none d-flex w-100 align-items-center justify-content-end mb-3">
+            <div class="bg-light rounded-3 me-2 p-2">
+                <p class="mb-0 text-break bubble-text"></p>
+            </div>
+            <span class="speaker-img right">😀</span>
+        </div>
+        <!-- Only show when no convo TODO -->
+        <div class="d-flex w-100 align-items-center justify-content-end mb-3">
+            <div class="bg-light rounded-3 me-2 p-2">
+                <p class="mb-0 text-break bubble-text">Start talking with Patter Pal by pressing the 🎙 button.</p>
+            </div>
+            <span class="speaker-img right">😀</span>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script type="module">
+        import { resolveHostWebSocketURL, resolveHostURL, htmlEscape } from './js/helpers.js';
+        import { fetchConversationAnswer } from './js/conversation_api.js';
+        import { AudioRecognitionStreamer } from './js/audio_recognition.js';
+
+        const micButton = document.getElementById('micButton');
+        const stateLabel = document.getElementById('stateLabel');
+        const languageSelect = document.getElementById('languageSelect');
+        const languageSelectContainer = document.getElementById('languageSelectContainer');
+        const textBubbleContainer = document.getElementById('textBubbleContainer');
+        const leftBubbleTemplate = document.getElementById('leftBubbleTemplate');
+        const rightBubbleTemplate = document.getElementById('rightBubbleTemplate');
+
+        // Enum for socket result types
+        const SocketResultType = {
+        @foreach (var enumName in Enum.GetNames(typeof(SocketResultType)))
+        {
+            @: "@enumName": @(Convert.ToInt32(Enum.Parse(typeof(SocketResultType), enumName))),
+        }};
+
+        const cachedAudioUrls = new Map();
+        let audioRecStreamer = null;
+        let audioPlayer = null;
+        let socket = null;
+        let currentChatId = null;
+        let currentSpeechOutputBubble = null;
+        let currentAnswerOutputBubble = null;
+
+        function updateConversationUi() {
+            const socketOpen = socket?.readyState == WebSocket.OPEN;
+            const isRecording = audioRecStreamer && socketOpen;
+            const isResponding = !audioRecStreamer && socketOpen;
+
+            languageSelect.disabled = socketOpen;
+            languageSelectContainer.classList.toggle('fade-out', socketOpen);
+
+            micButton.classList.toggle('active', isRecording);
+            micButton.disabled = isResponding && !audioPlayer; // Can cancel recording and audio, but not start new one when server is responding
+
+            // TODO remove
+            console.log(`socketOpen: ${socketOpen}, isRecording: ${isRecording}, isResponding: ${isResponding}, audioPlayer: ${audioPlayer}`);
+
+            if (socketOpen) {
+                if (isRecording) {
+                    stateLabel.innerHTML = "Listening...";
+                } else if (isResponding || audioPlayer) {
+                    stateLabel.innerHTML = "Responding...";
+                } else {
+                    stateLabel.innerHTML = "Analyzing...";
+                }
+            } else {
+                stateLabel.innerHTML = "Ready to start...";
+            }
+        }
+
+        function stopAudioStream(graceful = true) {
+            if (!graceful) audioRecStreamer?.abortRecording();
+            else audioRecStreamer?.stopRecording();
+
+            audioRecStreamer = null;
+            updateConversationUi();
+        }
+
+        function destroySocket() {
+            if (!socket) return;
+            socket.close();
+            socket = null;
+            updateConversationUi();
+        }
+
+        function destroyAudioPlayer() {
+            if (!audioPlayer) return;
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
+            audioPlayer = null;
+            updateConversationUi();
+        }
+
+        function scrollTextBubbleContainer() {
+            // Either top or bottom depending on flex-wrap
+            let flexWrapStyle = window.getComputedStyle(textBubbleContainer).flexWrap;
+
+            // scrollHeight is either negative or positive depending on flex-wrap
+            textBubbleContainer.scrollTo({ top: textBubbleContainer.scrollHeight * (flexWrapStyle === 'wrap' ? 1 : -1), behavior: 'smooth' });
+        }
+
+        function resetOutputBubbles() {
+            currentSpeechOutputBubble = leftBubbleTemplate.cloneNode(true);
+            currentAnswerOutputBubble = rightBubbleTemplate.cloneNode(true);
+            // Remove the 'id' attribute from the cloned elements
+            currentSpeechOutputBubble.removeAttribute('id');
+            currentAnswerOutputBubble.removeAttribute('id');
+
+            // Remove the 'd-none' class from the cloned elements
+            currentSpeechOutputBubble.classList.remove('d-none');
+            currentAnswerOutputBubble.classList.remove('d-none');
+        }
+
+        function setBubbleText(bubble, append = false) {
+            return (text) => {
+                const textElement = bubble.querySelector('.bubble-text');
+                textElement.innerHTML = append ? textElement.innerHTML + text : text;
+                scrollTextBubbleContainer(); // Adjust scroll position when new text is present
+            };
+        }
+
+        // --- Event Handlers --- //
+
+        micButton.onclick = () => {
+            if (audioRecStreamer || socket?.readyState == WebSocket.OPEN) {
+                // Cancel recording
+                stopAudioStream();
+                updateConversationUi();
+                return;
+            }
+
+            // Cancel audio playback
+            destroyAudioPlayer();
+
+            const connectionUrl = resolveHostWebSocketURL("@AppConfig.ConversationWebSocket" + "/" + languageSelect.value); // TODO optional guid existing chat
+            socket = new WebSocket(connectionUrl);
+            audioRecStreamer = new AudioRecognitionStreamer(socket, @AppConfig.RecordingBufferSize, @AppConfig.RecordingChunkTimeMs, @AppConfig.TargetSampleRate);
+            initSocket();
+        };
+
+        function socketMessageHandler(message) {
+            try {
+                // Audio synthesis
+                if (message.data instanceof Blob) {
+                    destroySocket(); // Final result received, close socket
+                    const audioBlob = message.data;
+                    const audioUrl = URL.createObjectURL(audioBlob);
+
+                    audioPlayer = new Audio(audioUrl);
+                    updateConversationUi();
+                    cachedAudioUrls.set(currentChatId, audioUrl);
+
+                    audioPlayer.play()
+                        .catch(e => {
+                            console.error('Error playing audio:', e);
+                            alert('Cannot play audio in your browser. Your browser might be updated or we are missing your permissions to play audio.');
+                            destroyAudioPlayer();
+                        });
+
+                    audioPlayer.onended = () => {
+                        destroyAudioPlayer();
+                    };
+                    return;
+                }
+
+                const result = JSON.parse(message.data);
+                switch (result?.Type) {
+                    case (SocketResultType.Error):
+                        if (result.Data.Message) alert(result.Data.Message); // Todo handling
+                        console.error(result.Data);
+                        stopAudioStream(false);
+                        destroySocket();
+                        break;
+                    case (SocketResultType.PartialSpeech):
+                        if (currentSpeechOutputBubble.parentNode === null) textBubbleContainer.appendChild(currentSpeechOutputBubble);
+                        setBubbleText(currentSpeechOutputBubble)(htmlEscape(result.Data));
+                        break;
+                    case (SocketResultType.SpeechResult):
+                        stopAudioStream();
+                        setBubbleText(currentSpeechOutputBubble)(htmlEscape(result.Data.Text));
+                        break;
+                    case (SocketResultType.PartialAnswer):
+                        if (currentAnswerOutputBubble.parentNode === null) textBubbleContainer.appendChild(currentAnswerOutputBubble);
+                        setBubbleText(currentAnswerOutputBubble, true)(htmlEscape(result.Data)); // OpenAi streams with partial results, have to append
+                        break;
+                    case (SocketResultType.AnswerResult):
+                        currentChatId = result.Data.Id;
+                        setBubbleText(currentAnswerOutputBubble)(htmlEscape(result.Data.Text));
+                        break;
+                    default:
+                        throw new Error(`Unknown socket result type: ${result.Type}`);
+                }
+
+                console.log(result); // TODO remove
+            } catch (error) {
+                console.warn(`Unhandelable socket message: ${error}`)
+                console.warn(message);
+            }
+        }
+
+        function initSocket() {
+            socket.onmessage = socketMessageHandler;
+            socket.onopen = async (event) => {
+                // Start audio recording when the socket is ready
+                try {
+                    await audioRecStreamer.startRecording();
+                } catch (error) {
+                    alert(`This application requires your microphone permission. Please enable it in the top of your browser.\nIf it still does not work, you might have to update your browser or try a different one.`);
+                    stopAudioStream(false);
+                    destroySocket();
+                }
+                resetOutputBubbles();
+                updateConversationUi();
+            };
+            socket.onclose = (event) => {
+                console.log(`WebSocket closed: ${event.reason}`);
+                // Closed, no need to do graceful shutdown
+                stopAudioStream(false);
+            };
+            socket.onerror = (event) => {
+                console.error(`WebSocket Error: ${event.reason}`);
+                stopAudioStream(false);
+                destroySocket();
+            };
+        }
+    </script>
+}
+

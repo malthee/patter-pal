@@ -20,6 +20,8 @@ namespace patter_pal.Util
         public string SpeechSubscriptionKey { get; set; } = string.Empty;
         public string SpeechRegion { get; set; } = string.Empty;
         public string OpenAiKey { get; set; } = string.Empty;
+        public string GoogleOAuthClientID { get; set; } = string.Empty;
+        public string GoogleOAuthClientSecret { get; set; } = string.Empty;
 
         // --- Transfer settings --- //
         public int HttpTimeout { get; set; } = 20; // Seconds
