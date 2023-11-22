@@ -1,10 +1,32 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>patter_pal</RootNamespace>
+    <UserSecretsId>912a7586-1404-443f-a49a-5a2bb363aff7</UserSecretsId>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="patter-pal.dataservice\**" />
+    <Compile Remove="patter-pal.domain\**" />
+    <Content Remove="patter-pal.dataservice\**" />
+    <Content Remove="patter-pal.domain\**" />
+    <EmbeddedResource Remove="patter-pal.dataservice\**" />
+    <EmbeddedResource Remove="patter-pal.domain\**" />
+    <None Remove="patter-pal.dataservice\**" />
+    <None Remove="patter-pal.domain\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.0.0" />
+    <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.33.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="patter-pal.dataservice\patter-pal.dataservice.csproj" />
+    <ProjectReference Include="patter-pal.domain\patter-pal.domain.csproj" />
+  </ItemGroup>
 
 </Project>

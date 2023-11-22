@@ -1,8 +1,36 @@
-﻿@{
+﻿@using patter_pal.Util;
+@using patter_pal.Models;
+@using patter_pal.Logic;
+@{
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+
+<p>Hello this page is in development!</p>
+
+@if (Model.UserEmail != null)
+{
+    <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post">
+        @Html.AntiForgeryToken()
+
+        <button type="submit">Logout</button>
+    </form>
+    <br />
+    <a>Oida hey @Model.UserEmail</a>
+}
+else
+{
+    <p>You need to be logged in if you want to use this app.</p>
+    <div class="oauth-buttons">
+        <div class="oauth-button">
+            <img src="img/google-icon.png" alt="Google Icon">
+            <a asp-controller="Auth" asp-action="ExternalLogin" asp-route-provider="Google">Login with Google</a>
+        </div>
+
+        <div class="oauth-button">
+            <img src="img/google-icon.png" alt="Googlebook Icon">
+            <a asp-controller="Auth" asp-action="ExternalLogin" asp-route-provider="Google">Login with Googlebook</a>
+        </div>
+        <!-- Add more OAuth options as needed -->
+    </div>
+}

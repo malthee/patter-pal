@@ -1,22 +1,137 @@
-html {
-  font-size: 14px;
+/*html {
+    position: relative;
+    height: 100%;
+}
+*/
+
+:root {
+    --footer-height: 60px; /* Adjust the height as needed */
 }
 
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
+footer {
+    height: var(--footer-height);
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
+html, body {
+    height: 100%;
+    overflow-x: hidden;
 }
 
 body {
-  margin-bottom: 60px;
+    background: linear-gradient(to right, #e6f1ff, #cce0ff);
+    color: #333;
+    line-height: 1.6;
+    background-size: cover;
+}
+
+    /* Background pattern */
+    body::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: repeating-linear-gradient( 45deg, transparent, transparent 10px, rgba(255, 255, 255, 0.1) 10px, rgba(255, 255, 255, 0.1) 20px );
+        z-index: -1;
+    }
+
+.vh-100-no-footer {
+    min-height: calc(100vh - var(--footer-height));
+}
+
+#micButton {
+    font-size: 5rem;
+    height: 9rem;
+    width: 9rem;
+    position: relative;
+}
+
+    #micButton.active {
+        animation: micPulseAnimation 2s infinite ease-in-out, micColorChangeAnimation 2s infinite ease-in-out;
+    }
+
+.menu-button {
+    display: inline-block;
+    text-align: center;
+    width: 4.5rem;
+    height: 4.5rem;
+    font-size: 3rem;
+}
+
+#languageSelectContainer {
+    transition: opacity 0.5s ease, max-height 1.5s ease;
+    max-height: 60px;
+    opacity: 1;
+}
+
+    #languageSelectContainer.fade-out {
+        opacity: 0;
+        transition: opacity 0.5s ease, max-height 1.5s ease;
+        max-height: 0;
+        z-index: 1;
+    }
+
+/* Subtle pulsing effect */
+@keyframes micPulseAnimation {
+    0%, 100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05); /* Less expansion for a smoother effect */
+    }
+}
+/* Softer color change effect */
+@keyframes micColorChangeAnimation {
+    0%, 100% {
+        background-color: #FFF;
+        border-color: #FFF; /* Original color */
+    }
+
+    50% {
+        background-color: #FF8A8A;
+        border-color: #FF8A8A; /* Softer shade of red */
+    }
+}
+
+.speaker-img {
+    font-size: 30px; /* Size of the emoji */
+}
+
+.left .speaker-img {
+    margin-right: 10px; /* Space between the left emoji and the bubble */
+}
+
+.right .speaker-img {
+    margin-left: 10px; /* Space between the right emoji and the bubble */
+}
+
+.max-height-500 {
+    max-height: 500px;
+}
+
+.oauth-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.oauth-button {
+    margin: 10px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.oauth-button img {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+}
+
+.oauth-button:hover {
+    background-color: #eee;
 }
