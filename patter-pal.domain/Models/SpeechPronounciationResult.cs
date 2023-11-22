@@ -25,6 +25,7 @@ namespace patter_pal.Models
             CompletenessScore = completenessScore;
             PronunciationScore = pronunciationScore;
             Words = words;
+            // TODO language, maybe datetime
         }
 
         public string Text { get; set; }

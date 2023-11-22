@@ -4,29 +4,25 @@
     ViewData["Title"] = "Home Page";
 }
 
-@if (Model.UserEmail != null)
-{
-    <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post">
-        @Html.AntiForgeryToken()
-
-        <button type="submit">Logout</button>
-    </form>
-    <br />
-    <a>Oida hey @Model.UserEmail</a>
-}
-
 <div class="fixed-top text-end mt-4 me-4">
-    <a href="#" title="Toggle History" class="text-decoration-none border-4 rounded-circle bg-light display-4" type="button" data-bs-toggle="collapse" data-bs-target="#leftMenu" aria-expanded="false" aria-controls="leftMenu">📃</a>
-    <a href="#" title="Show Stats" class="text-decoration-none display-4 border-4 rounded-circle bg-light">📊</a> <!-- TODO stats -->
+    <a href="#" title="Toggle History" class="text-decoration-none border-4 rounded-circle bg-light menu-button" data-bs-toggle="collapse" data-bs-target="#leftMenu" aria-expanded="false" aria-controls="leftMenu">📃</a>
+    <a href="#" title="Show Stats" class="text-decoration-none border-4 rounded-circle bg-light menu-button">📊</a> <!-- TODO stats -->
+    @if (Model.UserEmail != null)
+    {
+        <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post" class="align-top d-inline-block">
+            @Html.AntiForgeryToken()
+            <button type="submit" title="Logout" class="btn btn-light m-0 p-0 text-decoration-none border-4 rounded-circle menu-button">🚪</button>
+        </form>
+    }
 </div>
 <div class="row vh-100-no-footer align-items-start align-items-md-center justify-content-center g-4">
     <!-- Left column for list menu -->
     <div class="max-height-500 col-12 col-lg-3 collapse show overflow-auto align-self-end align-self-lg-center" id="leftMenu">
         <div class="list-group">
             <!-- todo link to new chat, link asp other page -->
-            <a href="#" class="list-group-item list-group-item-action active">bla bla bla - en-US</a>
-            <a href="#" class="list-group-item list-group-item-action">bla bla bla - en-US</a>
-            <a href="#" class="list-group-item list-group-item-action">bla bla bla - en-US</a>
+            <a href="#" class="list-group-item list-group-item-action">➕ New Conversation</a>
+            <div class="list-group-item list-group-item-action active d-flex justify-content-between"><span>Testing </span><a href="#editdod" class="text-decoration-none">✏️</a></div>
+            <a href="#" class="list-group-item list-group-item-action">Arabic Testing خ</a>
         </div>
     </div>
 
@@ -64,7 +60,7 @@
         <!-- Only show when no convo TODO -->
         <div class="d-flex w-100 align-items-center justify-content-end mb-3">
             <div class="bg-light rounded-3 me-2 p-2">
-                <p class="mb-0 text-break bubble-text">Start talking with Patter Pal by pressing the 🎙 button.</p>
+                <p class="mb-0 text-break bubble-text">Start talking with Patter Pal by pressing the 🎙 button. You can ask questions, talk about your day and switch language any time!</p>
             </div>
             <span class="speaker-img right">😀</span>
         </div>
@@ -73,9 +69,9 @@
 
 @section Scripts {
     <script type="module">
-        import { resolveHostWebSocketURL, resolveHostURL, htmlEscape } from './js/helpers.js';
-        import { fetchConversationAnswer } from './js/conversation_api.js';
-        import { AudioRecognitionStreamer } from './js/audio_recognition.js';
+        import { resolveHostWebSocketURL, resolveHostURL, htmlEscape } from '/js/helpers.js';
+        import { fetchConversationAnswer } from '/js/conversation_api.js';
+        import { AudioRecognitionStreamer } from '/js/audio_recognition.js';
 
         const micButton = document.getElementById('micButton');
         const stateLabel = document.getElementById('stateLabel');
