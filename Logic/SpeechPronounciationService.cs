@@ -47,7 +47,7 @@ namespace patter_pal.Logic
 
             SpeechRecognitionResult? recognitionResult = null;
             string? error = null;
-            InitRecognizer(recognizer, ws, (r) => recognitionResult ??= r, (e) => error ??= e);
+            InitRecognizer(language, recognizer, ws, (r) => recognitionResult ??= r, (e) => error ??= e);
             await recognizer.StartContinuousRecognitionAsync().ConfigureAwait(false);
 
             try
@@ -89,7 +89,7 @@ namespace patter_pal.Logic
             return recognitionResult;
         }
 
-        private void InitRecognizer(SpeechRecognizer recognizer, WebSocket ws, Action<SpeechRecognitionResult> onResult, Action<string> onError)
+        private void InitRecognizer(string language, SpeechRecognizer recognizer, WebSocket ws, Action<SpeechRecognitionResult> onResult, Action<string> onError)
         {
             _pronunciationAssessmentConfig.ApplyTo(recognizer);
 
@@ -110,6 +110,7 @@ namespace patter_pal.Logic
                     await recognizer.StopContinuousRecognitionAsync(); // Stop recognition after first result to exit more quickly
                     var pronounciation = PronunciationAssessmentResult.FromResult(e.Result);
                     var result = new SpeechPronounciationResult(e.Result.Text,
+                        language,
                         pronounciation.AccuracyScore,
                         pronounciation.FluencyScore,
                         pronounciation.CompletenessScore,

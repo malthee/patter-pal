@@ -14,13 +14,13 @@ builder.Services.AddControllersWithViews();
 var appConfig = new AppConfig();
 builder.Configuration.GetSection("AppConfig").Bind(appConfig);
 appConfig.ValidateConfigInitialized();
-AppConfig.Instance = appConfig;
-builder.Services.AddSingleton<CosmosService>(sp => new CosmosService(AppConfig.Instance.DbConnectionString));
+builder.Services.AddSingleton(sp => new CosmosService(appConfig.DbConnectionString));
 builder.Services.AddSingleton(appConfig);
 builder.Services.AddSingleton<SpeechPronounciationService>();
 builder.Services.AddSingleton<ConversationService>();
 builder.Services.AddSingleton<OpenAiService>();
 builder.Services.AddSingleton<UserService>();
+builder.Services.AddSingleton<SpeechSynthesisService>();
 builder.Services.AddSingleton<IUserJourneyDataService, MockUserJourneyDataService>();
 builder.Services.AddAuthentication(options =>
 {
@@ -41,8 +41,6 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("LoggedInPolicy", policy => policy.RequireAuthenticatedUser());
 });
-
-builder.Services.AddSingleton<SpeechSynthesisService>();
 
 // Add client with lowered timeout for OpenAI
 builder.Services.AddHttpClient(Options.DefaultName, c => c.Timeout = TimeSpan.FromSeconds(appConfig.HttpTimeout));
@@ -83,6 +81,7 @@ app.MapControllerRoute(
 app.MapDefaultControllerRoute();
 app.MapControllers();
 
+// Init Cosmos DB
 using (var scope = app.Services.CreateScope())
 {
     var cosmosService = scope.ServiceProvider.GetService<CosmosService>()!;

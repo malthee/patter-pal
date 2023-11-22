@@ -17,7 +17,7 @@ namespace patter_pal.Models
             public string? ErrorType { get; set; }
         }
 
-        public SpeechPronounciationResult(string text, double accuracyScore, double fluencyScore, double completenessScore, double pronunciationScore, List<Word> words)
+        public SpeechPronounciationResult(string text, string language, double accuracyScore, double fluencyScore, double completenessScore, double pronunciationScore, List<Word> words)
         {
             Text = text;
             AccuracyScore = accuracyScore;
@@ -25,10 +25,12 @@ namespace patter_pal.Models
             CompletenessScore = completenessScore;
             PronunciationScore = pronunciationScore;
             Words = words;
-            // TODO language, maybe datetime
+            Language = language;
+            // TODO maybe datetime
         }
 
         public string Text { get; set; }
+        public string Language { get; set; }
         public double AccuracyScore { get; set; }
         public double FluencyScore { get; set; }
         public double CompletenessScore { get; set; }

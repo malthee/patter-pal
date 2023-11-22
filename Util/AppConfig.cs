@@ -4,8 +4,6 @@ namespace patter_pal.Util
 {
     public class AppConfig
     {
-        public static AppConfig Instance = default!;
-
         // -- Compile time app constants -- //
         public const string AppUrl = "https://patter-pal.azurewebsites.net";
         public const string ConversationWebSocket = "WebSocket/StartConversation";
