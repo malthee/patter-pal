@@ -8,15 +8,13 @@
 
 <p>Hello this page is in development!</p>
 
-@if (Model.UserEmail != null)
+@if ((bool)ViewData["IsLoggedIn"]!)
 {
     <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post">
         @Html.AntiForgeryToken()
 
         <button type="submit">Logout</button>
     </form>
-    <br />
-    <a>Oida hey @Model.UserEmail</a>
 }
 else
 {

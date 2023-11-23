@@ -2,8 +2,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.Extensions.Options;
 using patter_pal.dataservice.Azure;
-using patter_pal.dataservice.Interfaces;
-using patter_pal.dataservice.Mock;
+using patter_pal.dataservice.DataObjects;
 using patter_pal.Logic;
 using patter_pal.Util;
 
@@ -14,14 +13,15 @@ builder.Services.AddControllersWithViews();
 var appConfig = new AppConfig();
 builder.Configuration.GetSection("AppConfig").Bind(appConfig);
 appConfig.ValidateConfigInitialized();
-builder.Services.AddSingleton(sp => new CosmosService(appConfig.DbConnectionString));
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton(sp => new CosmosService(appConfig.DbConnectionString, appConfig.CosmosDbDb1, appConfig.CosmosDbDb1C1, appConfig.CosmosDbDb1C1PK, appConfig.CosmosDbDb1C2, appConfig.CosmosDbDb1C2PK));
 builder.Services.AddSingleton(appConfig);
 builder.Services.AddSingleton<SpeechPronounciationService>();
 builder.Services.AddSingleton<ConversationService>();
 builder.Services.AddSingleton<OpenAiService>();
-builder.Services.AddSingleton<UserService>();
+builder.Services.AddScoped<UserService>();
 builder.Services.AddSingleton<SpeechSynthesisService>();
-builder.Services.AddSingleton<IUserJourneyDataService, MockUserJourneyDataService>();
+builder.Services.AddSingleton<IConversationService, ConversationService>();
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -84,8 +84,47 @@ app.MapControllers();
 // Init Cosmos DB
 using (var scope = app.Services.CreateScope())
 {
-    var cosmosService = scope.ServiceProvider.GetService<CosmosService>()!;
-    await cosmosService.InitializeDatabaseAndContainerAsync();
+    CosmosService cosmosService = scope.ServiceProvider.GetService<CosmosService>()!;
+    await cosmosService.InitializeService();
+    /*
+    IConversationService conversationService = scope.ServiceProvider.GetService<IConversationService>()!;
+    string userId = "id";
+    string userId2 = "aaaaa";
+
+    // create new conversation
+    var cd = ConversationData.Create(userId, "Test");
+    await conversationService.AddConversationAsync(userId, cd);
+    var cd2 = ConversationData.Create(userId2, "Test");
+    await conversationService.AddConversationAsync(userId2, cd2);
+
+    // talk + response
+    await conversationService.AddChatAsync(userId, cd.Id, new ChatData(true, "request", "German"));
+    await conversationService.AddChatAsync(userId, cd.Id, new ChatData(false, "response", "German"));
+
+    // close app
+
+    // reopen app, login, load all conversations (shallow, does not include messages)
+    var cds = await conversationService.GetConversationsAsync(userId);
+
+    // click on conversation => explicitly load
+    var cd_full = await conversationService.GetConversationAndChatsAsync(userId, cds.First().Id);
+
+    // talk + response + save
+    await conversationService.AddChatAsync(userId, cd_full.Id, new ChatData(true, "request", "English"));
+    await conversationService.AddChatAsync(userId, cd_full.Id, new ChatData(false, "response", "English"));
+
+    // reopen app, login, load all conversations
+    cds = await conversationService.GetConversationsAsync(userId);
+
+    // click on conversation => explicitly load
+    cd_full = await conversationService.GetConversationAndChatsAsync(userId, cds.First().Id);
+    await conversationService.UpdateConversationAsync(userId, cd_full);
+
+    // delete conversation
+    await conversationService.DeleteConversationAsync(userId, cd_full.Id);
+    //await cosmosService.DeleteAllUserData(userId);
+    */
+
 }
 
 app.Run();

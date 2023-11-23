@@ -1,79 +1,96 @@
-﻿using Microsoft.Azure.Cosmos;
+﻿using Azure;
+using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Logging;
 using patter_pal.dataservice.DataObjects;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace patter_pal.dataservice.Azure
 {
     public class CosmosService
     {
-        private CosmosClient _cosmosClient;
-        private readonly string _databaseName = "db1";
-        private readonly string _containerName = "c1";
-        public CosmosService(string connectionString)
+        private readonly CosmosClient _cosmosClient;
+        private readonly CosmosServiceContainer<ConversationData> _cosmosServiceContainerConversations;
+        private readonly CosmosServiceContainer<SpeechPronounciationResultData> _cosmosServiceContainerSpeech;
+        public CosmosService(string connectionString, string cosmosDbDb1, string cosmosDbDb1C1, string cosmosDbDb1C1Pk, string cosmosDbDb1C2, string cosmosDbDb1C2Pk)
         {
             _cosmosClient = new CosmosClient(connectionString);
-            Console.WriteLine("aaa");
+            _cosmosServiceContainerConversations = new CosmosServiceContainer<ConversationData>(_cosmosClient, cosmosDbDb1, cosmosDbDb1C1, cosmosDbDb1C1Pk);
+            _cosmosServiceContainerSpeech = new CosmosServiceContainer<SpeechPronounciationResultData>(_cosmosClient, cosmosDbDb1, cosmosDbDb1C2, cosmosDbDb1C2Pk);
         }
 
-        public async Task InitializeDatabaseAndContainerAsync()
+        public async Task InitializeService()
         {
-            DatabaseResponse database = await _cosmosClient.CreateDatabaseIfNotExistsAsync(_databaseName);
-            await database.Database.CreateContainerIfNotExistsAsync(_containerName, "/Email");
+            await _cosmosServiceContainerConversations.InitializeDatabaseAndContainerAsync();
+            await _cosmosServiceContainerSpeech.InitializeDatabaseAndContainerAsync();
+        }
+        
+        public async Task<ConversationData?> GetUserConversationAsync(string userId, string conversationId)
+        {
+            string query = "SELECT * FROM c1 WHERE c1.id = @p0 and c1.UserId = @p1";
+            List<ConversationData>? res = await _cosmosServiceContainerConversations.QueryAsync(query, conversationId, userId);
+            return res?.FirstOrDefault();
         }
 
-        public async Task<UserJourneyData> UpsertUserJourneyDataAsync(UserJourneyData userJourneyData)
+        public async Task<bool> AddOrUpdateChatConversationDataAsync(ConversationData chatConversation)
         {
-            var container = _cosmosClient.GetContainer(_databaseName, _containerName);
-
-            try
+            return await _cosmosServiceContainerConversations.AddOrUpdateAsync(chatConversation, (db, arg) =>
             {
-                // Attempt to read the item from Cosmos DB
-                ItemResponse<UserJourneyData> existingItem = await container.ReadItemAsync<UserJourneyData>(
-                    userJourneyData.Id,
-                    new PartitionKey(userJourneyData.Email));
+                db.Title = arg.Title;
+                db.Data = arg.Data;
+            });
+        }
 
-                // If the item exists, update it
-                existingItem.Resource.JourneyDetails = userJourneyData.JourneyDetails;
+        public async Task<bool> UpdateConversationTitleAsync(ConversationData chatConversation)
+        {
+            return await _cosmosServiceContainerConversations.AddOrUpdateAsync(chatConversation, (db, arg) =>
+            {
+                db.Title = arg.Title;
+            });
+        }
 
-                ItemResponse<UserJourneyData> response = await container.ReplaceItemAsync(
-                    existingItem.Resource,
-                    existingItem.Resource.Id,
-                    new PartitionKey(userJourneyData.Email));
+        public async Task<bool> DeleteConversationAsync(ConversationData data)
+        {
+            return await _cosmosServiceContainerConversations.DeleteAsync(data);
+        }
 
-                return response.Resource;
+        public async Task<List<ConversationData>?> GetUserConversationsShallowAsync(string userId)
+        {
+            string query = "SELECT c1.id, c1.UserId, c1.Title FROM c1 WHERE c1.UserId = @p0";
+            return await _cosmosServiceContainerConversations.QueryAsync(query, userId);
+        }
+
+        //TODO:
+        // Add SpeechPronounciationResultData(SpeechPronounciationResultData data)
+        // Delete AllUserData(string userId)
+
+        public async Task<List<SpeechPronounciationResultData>?> GetSpeechPronounciationResultDataAsync(string userId, string? language = null)
+        {
+            if (language is null)
+            {
+                string query = "SELECT * FROM c2 WHERE c2.UserId = @p0";
+                return await _cosmosServiceContainerSpeech.QueryAsync(query, userId);
             }
-            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            else
             {
-                // If the item does not exist, create a new one
-                ItemResponse<UserJourneyData> response = await container.CreateItemAsync(
-                    userJourneyData,
-                    new PartitionKey(userJourneyData.Email));
-
-                return response.Resource;
+                string query = "SELECT * FROM c2 WHERE c2.UserId = @p0 AND c2.Language = @p1";
+                return await _cosmosServiceContainerSpeech.QueryAsync(query, userId, language);
             }
         }
 
-        public async Task<UserJourneyData?> TryGetUserJourneyDataAsync(string email)
+        public async Task<bool> AddSpeechPronounciationResultDataAsync(string userId, SpeechPronounciationResultData data)
         {
-            var container = _cosmosClient.GetContainer(_databaseName, _containerName);
-
-            try
+            data.UserId = userId;
+            return await _cosmosServiceContainerSpeech.AddOrUpdateAsync(data, (db, arg) =>
             {
-                var response = await container.ReadItemAsync<UserJourneyData>(
-                    email,
-                    new PartitionKey(email));
+                
+            });
+        }
 
-                return response.Resource;
-            }
-            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                // If the item is not found, return null
-                return null;
-            }
+        public async Task<bool> DeleteAllUserData(string userId)
+        {
+            return 
+                await _cosmosServiceContainerConversations.DeletePartitionAsync(userId) && 
+                await _cosmosServiceContainerSpeech.DeletePartitionAsync(userId);
         }
 
     }

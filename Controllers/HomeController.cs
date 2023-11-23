@@ -8,11 +8,6 @@ using System.Security.Claims;
 
 namespace patter_pal.Controllers
 {
-    public class Model
-    {
-        public string? UserEmail { get; set; }
-    }
-    
     public class HomeController : Controller
     {
         private readonly UserService _userService;
@@ -24,36 +19,22 @@ namespace patter_pal.Controllers
             _userService = userService;
         }
 
+        
+
         [Authorize(Policy = "LoggedInPolicy")]
         public async Task<IActionResult> App()
         {
-            var info = await HttpContext.AuthenticateAsync("Cookies");
-            if (info == null)
-            {
-                //TODO: handle error
-                //return RedirectToAction(nameof(Login));
-                return RedirectToAction("Index", "Home");
-            }
+            ViewData["IsLoggedIn"] = await _userService.IsLoggedIn();
 
-            // Get the user's email (you can customize this based on your needs)
-            string email = info.Principal?.FindFirstValue(ClaimTypes.Email) ?? "";
-
-            await _userService.LoginUser(email);
-            var model = new Model
-            {
-                UserEmail = _userService.UserData?.Id
-            };
-            return View(model);
+            return View();
         }
 
         [AllowAnonymous]
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            var model = new Model
-            {
-                UserEmail = _userService.UserData?.Id
-            };
-            return View(model);
+            ViewData["IsLoggedIn"] = await _userService.IsLoggedIn();
+
+            return View();
         }
 
         [AllowAnonymous]
