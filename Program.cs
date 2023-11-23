@@ -84,8 +84,8 @@ app.MapControllers();
 // Init Cosmos DB
 using (var scope = app.Services.CreateScope())
 {
-    var cosmosService = scope.ServiceProvider.GetService<CosmosService>()!;
-    await cosmosService.InitializeDatabaseAndContainerAsync();
+    CosmosService cosmosService = scope.ServiceProvider.GetService<CosmosService>()!;
+    await cosmosService.InitializeService();
 }
 
 app.Run();

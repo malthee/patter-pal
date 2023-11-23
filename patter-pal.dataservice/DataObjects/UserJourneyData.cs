@@ -8,11 +8,12 @@ using System.Threading.Tasks;
 
 namespace patter_pal.dataservice.DataObjects
 {
-    public class UserJourneyData
+    public class UserJourneyData : ContainerItem
     {
         [JsonProperty(PropertyName = "id")]
         public string Id { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+
         public string JourneyDetails { get; set; } = string.Empty;
 
         public UserJourneyData()
