@@ -15,7 +15,7 @@ namespace patter_pal.Logic
     {
         private const int MIN_PROMPTS = 3; // Includes initial language prompt, feedback prompt and user input. Should always be at least those.
         private const int MIN_WORDS_USER_INPUT = 14; // Will only reduce the user input if it is longer than this
-        private static readonly char[] WORD_SEPERATORS = [' ', '\r', '\n'];
+        private static readonly char[] WORD_SEPERATORS = { ' ', '\r', '\n' };
 
         private readonly ILogger<HomeController> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
