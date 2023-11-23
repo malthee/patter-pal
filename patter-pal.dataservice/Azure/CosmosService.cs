@@ -11,11 +11,11 @@ namespace patter_pal.dataservice.Azure
         private readonly CosmosClient _cosmosClient;
         private readonly CosmosServiceContainer<ConversationData> _cosmosServiceContainerConversations;
         private readonly CosmosServiceContainer<SpeechPronounciationResultData> _cosmosServiceContainerSpeech;
-        public CosmosService(string connectionString)
+        public CosmosService(string connectionString, string cosmosDbDb1, string cosmosDbDb1C1, string cosmosDbDb1C1Pk, string cosmosDbDb1C2, string cosmosDbDb1C2Pk)
         {
             _cosmosClient = new CosmosClient(connectionString);
-            _cosmosServiceContainerConversations = new CosmosServiceContainer<ConversationData>(_cosmosClient, "db1", "c1", "/UserId");
-            _cosmosServiceContainerSpeech = new CosmosServiceContainer<SpeechPronounciationResultData>(_cosmosClient, "db1", "c2", "/UserId");
+            _cosmosServiceContainerConversations = new CosmosServiceContainer<ConversationData>(_cosmosClient, cosmosDbDb1, cosmosDbDb1C1, cosmosDbDb1C1Pk);
+            _cosmosServiceContainerSpeech = new CosmosServiceContainer<SpeechPronounciationResultData>(_cosmosClient, cosmosDbDb1, cosmosDbDb1C2, cosmosDbDb1C2Pk);
         }
 
         public async Task InitializeService()
