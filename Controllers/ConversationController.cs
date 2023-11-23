@@ -11,13 +11,15 @@ namespace patter_pal.Controllers
     public class ConversationController : ControllerBase
     {
         private readonly ILogger<HomeController> _logger;
-        private readonly ConversationService _conversationService;
+        private readonly IConversationService _conversationService;
 
-        public ConversationController(ILogger<HomeController> logger, ConversationService conversationService)
+        public ConversationController(ILogger<HomeController> logger, IConversationService conversationService)
         {
             _logger = logger;
             _conversationService = conversationService;
         }
+
+
 
     }
 }

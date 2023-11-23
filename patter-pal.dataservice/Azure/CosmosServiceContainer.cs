@@ -85,6 +85,32 @@ namespace patter_pal.dataservice.Azure
             }
         }
 
+        public async Task<bool> DeletePartitionAsync(string partitionKey)
+        {
+            Container container = GetContainer();
+
+            try
+            {
+                string query = $"SELECT * FROM {ContainerName} WHERE {ContainerName}.{PartitionKey[1..]} = @pk";
+                var queryDefinition = new QueryDefinition(query).WithParameter("@pk", partitionKey);
+                using FeedIterator<T> feedIterator = container.GetItemQueryIterator<T>(queryDefinition);
+
+                List<T> res = new();
+                while (feedIterator.HasMoreResults)
+                {
+                    FeedResponse<T> response = await feedIterator.ReadNextAsync();
+                    response.ToList().ForEach(async(i) => await container.DeleteItemAsync<T>(i.Id, new PartitionKey(partitionKey)));
+                }
+
+                return true;
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                // TODO: log
+                return false;
+            }
+        }
+
         public async Task<List<T>?> QueryAsync(string query, params string[] ps)
         {
             Container container = GetContainer();

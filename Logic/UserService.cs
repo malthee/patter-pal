@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Http;
 using patter_pal.dataservice.Azure;
 using patter_pal.dataservice.DataObjects;
-using patter_pal.dataservice.Interfaces;
 using System.Security.Claims;
 
 namespace patter_pal.Logic

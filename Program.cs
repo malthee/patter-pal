@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.Extensions.Options;
 using patter_pal.dataservice.Azure;
 using patter_pal.dataservice.DataObjects;
-using patter_pal.dataservice.Interfaces;
-using patter_pal.dataservice.Mock;
 using patter_pal.Logic;
 using patter_pal.Util;
 
@@ -23,7 +21,6 @@ builder.Services.AddSingleton<ConversationService>();
 builder.Services.AddSingleton<OpenAiService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddSingleton<SpeechSynthesisService>();
-builder.Services.AddSingleton<IUserJourneyDataService, MockUserJourneyDataService>();
 builder.Services.AddSingleton<IConversationService, ConversationService>();
 builder.Services.AddAuthentication(options =>
 {
@@ -92,10 +89,13 @@ using (var scope = app.Services.CreateScope())
     /*
     IConversationService conversationService = scope.ServiceProvider.GetService<IConversationService>()!;
     string userId = "id";
+    string userId2 = "aaaaa";
 
     // create new conversation
     var cd = ConversationData.Create(userId, "Test");
     await conversationService.AddConversationAsync(userId, cd);
+    var cd2 = ConversationData.Create(userId2, "Test");
+    await conversationService.AddConversationAsync(userId2, cd2);
 
     // talk + response
     await conversationService.AddChatAsync(userId, cd.Id, new ChatData(true, "request", "German"));
@@ -122,8 +122,9 @@ using (var scope = app.Services.CreateScope())
 
     // delete conversation
     await conversationService.DeleteConversationAsync(userId, cd_full.Id);
+    //await cosmosService.DeleteAllUserData(userId);
     */
-    
+
 }
 
 app.Run();
