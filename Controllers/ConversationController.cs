@@ -19,11 +19,5 @@ namespace patter_pal.Controllers
             _conversationService = conversationService;
         }
 
-        [HttpGet]
-        public async Task<ActionResult<List<ChatMessage>>> GetChatlog(Guid id)
-        {
-            // TODO
-            return await _conversationService.GetChatlog(id);
-        }
     }
 }

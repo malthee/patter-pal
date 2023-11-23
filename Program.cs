@@ -24,6 +24,7 @@ builder.Services.AddSingleton<OpenAiService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddSingleton<SpeechSynthesisService>();
 builder.Services.AddSingleton<IUserJourneyDataService, MockUserJourneyDataService>();
+builder.Services.AddSingleton<IConversationService, ConversationService>();
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -88,6 +89,41 @@ using (var scope = app.Services.CreateScope())
 {
     CosmosService cosmosService = scope.ServiceProvider.GetService<CosmosService>()!;
     await cosmosService.InitializeService();
+    /*
+    IConversationService conversationService = scope.ServiceProvider.GetService<IConversationService>()!;
+    string userId = "id";
+
+    // create new conversation
+    var cd = ConversationData.Create(userId, "Test");
+    await conversationService.AddConversationAsync(userId, cd);
+
+    // talk + response
+    await conversationService.AddChatAsync(userId, cd.Id, new ChatData(true, "request", "German"));
+    await conversationService.AddChatAsync(userId, cd.Id, new ChatData(false, "response", "German"));
+
+    // close app
+
+    // reopen app, login, load all conversations (shallow, does not include messages)
+    var cds = await conversationService.GetConversationsAsync(userId);
+
+    // click on conversation => explicitly load
+    var cd_full = await conversationService.GetConversationAndChatsAsync(userId, cds.First().Id);
+
+    // talk + response + save
+    await conversationService.AddChatAsync(userId, cd_full.Id, new ChatData(true, "request", "English"));
+    await conversationService.AddChatAsync(userId, cd_full.Id, new ChatData(false, "response", "English"));
+
+    // reopen app, login, load all conversations
+    cds = await conversationService.GetConversationsAsync(userId);
+
+    // click on conversation => explicitly load
+    cd_full = await conversationService.GetConversationAndChatsAsync(userId, cds.First().Id);
+    await conversationService.UpdateConversationAsync(userId, cd_full);
+
+    // delete conversation
+    await conversationService.DeleteConversationAsync(userId, cd_full.Id);
+    */
+    
 }
 
 app.Run();

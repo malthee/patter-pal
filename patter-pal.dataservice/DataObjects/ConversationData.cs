@@ -8,34 +8,38 @@ using System.Threading.Tasks;
 
 namespace patter_pal.dataservice.DataObjects
 {
-    public class ChatConversationData : ContainerItem
+    public class ConversationData : ContainerItem
     {
+
         [JsonProperty(PropertyName = "id")]
         public string Id { get; set; } = string.Empty;
         public string UserId { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
 
-        public List<ChatMessageData> Data { get; set; } = new();
+        public List<ChatData> Data { get; set; } = new();
 
-        public ChatConversationData()
+        public ConversationData()
         {
-                
+            
         }
-
-        public void AddChatMessage(bool isUser, string text, string language)
+        
+        public static ConversationData Create(string userId, string title)
         {
-            Data.Add(new ChatMessageData(Data.Count, isUser, text, language));
-        }
-
-        public static ChatConversationData NewConversation(string userId, string title)
-        {
-            return new ChatConversationData
+            return new ConversationData
             {
                 Id = Guid.NewGuid().ToString(),
                 Title = title,
                 UserId = userId
             };
         }
+
+        public void AddChatMessage(ChatData chat)
+        {
+            chat.Id = Data.Count;
+            Data.Add(chat);
+        }
+
+
 
         //TODO: add props
     }

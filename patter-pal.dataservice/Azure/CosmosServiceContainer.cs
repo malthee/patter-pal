@@ -33,12 +33,13 @@ namespace patter_pal.dataservice.Azure
         }
 
         
-        public async Task<T> AddOrUpdateAsync(T data, Action<T, T> modificationFunc)
+        public async Task<bool> AddOrUpdateAsync(T data, Action<T, T> modificationFunc)
         {
             Container container = GetContainer();
 
             try
             {
+
                 // Attempt to read the item from Cosmos DB
                 ItemResponse<T> existingItem = await container.ReadItemAsync<T>(
                     data.Id,
@@ -47,62 +48,71 @@ namespace patter_pal.dataservice.Azure
                 // If the item exists, update it
                 modificationFunc(existingItem.Resource, data);
 
-                ItemResponse<T> response = await container.ReplaceItemAsync(
+                await container.ReplaceItemAsync(
                     existingItem.Resource,
                     existingItem.Resource.Id,
                     new PartitionKey(data.UserId));
 
-                return response.Resource;
+                return true;
             }
             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 // If the item does not exist, create a new one
-                ItemResponse<T> response = await container.CreateItemAsync(
+                await container.CreateItemAsync(
                     data,
                     new PartitionKey(data.UserId));
 
-                return response.Resource;
+                return false;
             }
         }
 
-        public async Task DeleteAsync(T data)
+        public async Task<bool> DeleteAsync(T data)
         {
             Container container = GetContainer();
 
             try
             {
-                ItemResponse<T> deletedItem = await container.DeleteItemAsync<T>(
+                await container.DeleteItemAsync<T>(
                     data.Id,
                     new PartitionKey(data.UserId));
 
-                return;
+                return true;
             }
             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 // TODO: log
-                return;
+                return false;
             }
         }
 
-        public async Task<List<T>> QueryAsync(string query, params string[] ps)
+        public async Task<List<T>?> QueryAsync(string query, params string[] ps)
         {
             Container container = GetContainer();
-            QueryDefinition queryDefinition = new(query);
 
-            for (int i = 0; i < ps.Length; i++)
+            try
             {
-                queryDefinition = queryDefinition.WithParameter($"@p{i}", ps[i]);
-            }
-            using FeedIterator<T> feedIterator = container.GetItemQueryIterator<T>(queryDefinition);
+                QueryDefinition queryDefinition = new(query);
 
-            List<T> res = new();
-            while (feedIterator.HasMoreResults)
+                for (int i = 0; i < ps.Length; i++)
+                {
+                    queryDefinition = queryDefinition.WithParameter($"@p{i}", ps[i]);
+                }
+                using FeedIterator<T> feedIterator = container.GetItemQueryIterator<T>(queryDefinition);
+
+                List<T> res = new();
+                while (feedIterator.HasMoreResults)
+                {
+                    FeedResponse<T> response = await feedIterator.ReadNextAsync();
+                    response.ToList().ForEach(res.Add);
+                }
+
+                return res;
+            }
+            catch (Exception)
             {
-                FeedResponse<T> response = await feedIterator.ReadNextAsync();
-                response.ToList().ForEach(res.Add);
-            }
 
-            return res;
+                return null;
+            }
         }
     }
 }
