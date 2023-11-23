@@ -1,41 +1,35 @@
-﻿using patter_pal.dataservice.DataObjects;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
+using patter_pal.dataservice.Azure;
+using patter_pal.dataservice.DataObjects;
 using patter_pal.dataservice.Interfaces;
+using System.Security.Claims;
 
 namespace patter_pal.Logic
 {
     /// <summary>
-    /// Handling login/logout.
     /// Managing data of currently logged in user.
     /// </summary>
     public class UserService
     {
-        private readonly IUserJourneyDataService _userJourneyDataService;
-        public UserJourneyData? UserData { get; set; }
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public UserService(IUserJourneyDataService userJourneyDataService)
+        public UserService(IHttpContextAccessor httpContextAccessor)
         {
-            _userJourneyDataService = userJourneyDataService;
+            this._httpContextAccessor = httpContextAccessor;
         }
 
-        public bool IsLoggedIn() => UserData != null;
-
-        /// <summary>
-        /// Logs in user with provided <paramref name="email"/>.
-        /// Retrieves <see cref="UserJourneyData"/> if exists or inits it with empty data.
-        /// </summary>
-        /// <param name="email"></param>
-        /// <returns></returns>
-        public async Task LoginUser(string email)
+        public async Task<bool> IsLoggedIn() => !string.IsNullOrEmpty(await GetUserId());
+        public async Task<string?> GetUserId()
         {
-            UserData = await _userJourneyDataService.Persist(email);
+            HttpContext? httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null)
+            {
+                return null;
+            }
+            AuthenticateResult info = await httpContext.AuthenticateAsync("Cookies");
+            return info.Principal?.FindFirstValue(ClaimTypes.Email);
         }
 
-        /// <summary>
-        /// Unlinks data of currently logged in user´.
-        /// </summary>
-        public void Logout()
-        {
-            UserData = null;
-        }
     }
 }

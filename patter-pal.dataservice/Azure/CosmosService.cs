@@ -7,11 +7,11 @@ namespace patter_pal.dataservice.Azure
     public class CosmosService
     {
         private readonly CosmosClient _cosmosClient;
-        private readonly CosmosServiceContainer<UserJourneyData> _cosmosServiceContainer;
+        private readonly CosmosServiceContainer<ChatConversationData> _cosmosServiceContainer;
         public CosmosService(string connectionString)
         {
             _cosmosClient = new CosmosClient(connectionString);
-            _cosmosServiceContainer = new CosmosServiceContainer<UserJourneyData>(_cosmosClient, "db1", "c1", "/Email");
+            _cosmosServiceContainer = new CosmosServiceContainer<ChatConversationData>(_cosmosClient, "db1", "c1", "/UserId");
         }
 
         public async Task InitializeService()
@@ -19,31 +19,37 @@ namespace patter_pal.dataservice.Azure
             await _cosmosServiceContainer.InitializeDatabaseAndContainerAsync();
         }
 
-        public async Task<List<UserJourneyData>> GetUserData(string email)
+        public async Task<ChatConversationData?> GetUserConversationAsync(string id)
         {
-            string query = "SELECT * FROM c1 where c1.Email = @p0";
-            return await _cosmosServiceContainer.QueryAsync(query, email);
+            string query = "SELECT * FROM c1 where c1.id = @p0";
+            List<ChatConversationData> res = await _cosmosServiceContainer.QueryAsync(query, id.ToString());
+            return res.FirstOrDefault();
         }
 
-        public async Task<UserJourneyData> UpsertUserJourneyDataAsync(UserJourneyData userJourneyData)
+        public ChatConversationData CreateNewConversation(string userId, string title)
         {
-            return await _cosmosServiceContainer.AddOrUpdateAsync(userJourneyData, (db, arg) =>
+            return ChatConversationData.NewConversation(userId, title);
+        }
+
+        public async Task<ChatConversationData> AddOrUpdateChatConversationDataAsync(ChatConversationData chatConversation)
+        {
+            return await _cosmosServiceContainer.AddOrUpdateAsync(chatConversation, (db, arg) =>
             {
-                db.JourneyDetails = arg.JourneyDetails;
+                db.Data = arg.Data;
             });
         }
 
-        public async Task DeleteUserDataAsync(UserJourneyData data)
+        public async Task DeleteConversationAsync(ChatConversationData data)
         {
             await _cosmosServiceContainer.DeleteAsync(data);
             return;
         }
 
-        public async Task<UserJourneyData?> TryGetUserJourneyDataAsync(string email)
+        public async Task<List<ChatConversationData>> GetUserConversationsShallowAsync(string userId)
         {
-            string query = "SELECT * FROM c1 WHERE c1.Email = @p0";
-            var res = await _cosmosServiceContainer.QueryAsync(query, email);
-            return res.FirstOrDefault();
+            string query = "SELECT c1.id, c1.UserId, c1.Title FROM c1 WHERE c1.UserId = @p0";
+            var res = await _cosmosServiceContainer.QueryAsync(query, userId);
+            return res;
         }
 
     }

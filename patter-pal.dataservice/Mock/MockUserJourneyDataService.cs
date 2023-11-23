@@ -21,17 +21,6 @@ namespace patter_pal.dataservice.Mock
             this._cosmosService = cosmosService;
         }
 
-        public async Task<UserJourneyData> Persist(string email)
-        {
-            UserJourneyData? existing = await _cosmosService.TryGetUserJourneyDataAsync(email);
-            return await _cosmosService.UpsertUserJourneyDataAsync(existing ?? new UserJourneyData { Id = email, Email = email });
-            //return Task.FromResult(new UserJourneyData { Email = email });
-        }
 
-        public async Task<UserJourneyData> Persist(UserJourneyData userJourneyData)
-        {
-            return await _cosmosService.UpsertUserJourneyDataAsync(userJourneyData);
-            //return Task.FromResult(new UserJourneyData { Email = email });
-        }
     }
 }

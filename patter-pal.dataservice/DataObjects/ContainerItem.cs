@@ -11,6 +11,6 @@ namespace patter_pal.dataservice.DataObjects
     {
         [JsonProperty(PropertyName = "id")]
         string Id { get; set; }
-        string Email { get; set; }
+        string UserId { get; set; }
     }
 }

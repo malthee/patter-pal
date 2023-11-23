@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.Extensions.Options;
 using patter_pal.dataservice.Azure;
+using patter_pal.dataservice.DataObjects;
 using patter_pal.dataservice.Interfaces;
 using patter_pal.dataservice.Mock;
 using patter_pal.Logic;
@@ -14,12 +15,13 @@ builder.Services.AddControllersWithViews();
 var appConfig = new AppConfig();
 builder.Configuration.GetSection("AppConfig").Bind(appConfig);
 appConfig.ValidateConfigInitialized();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton(sp => new CosmosService(appConfig.DbConnectionString));
 builder.Services.AddSingleton(appConfig);
 builder.Services.AddSingleton<SpeechPronounciationService>();
 builder.Services.AddSingleton<ConversationService>();
 builder.Services.AddSingleton<OpenAiService>();
-builder.Services.AddSingleton<UserService>();
+builder.Services.AddScoped<UserService>();
 builder.Services.AddSingleton<SpeechSynthesisService>();
 builder.Services.AddSingleton<IUserJourneyDataService, MockUserJourneyDataService>();
 builder.Services.AddAuthentication(options =>
@@ -86,6 +88,37 @@ using (var scope = app.Services.CreateScope())
 {
     CosmosService cosmosService = scope.ServiceProvider.GetService<CosmosService>()!;
     await cosmosService.InitializeService();
+    
+    // create new conversation
+    var ccd = cosmosService.CreateNewConversation("weiensteiner.stefan@gmail.com", "Test");
+
+    // talk + response + save
+    ccd.AddChatMessage(true, "request", "German");
+    ccd.AddChatMessage(false, "response", "German");
+    ccd = await cosmosService.AddOrUpdateChatConversationDataAsync(ccd);
+
+    // close app
+
+    // reopen app, login, load all conversations (shallow, does not include messages)
+    var ccds = await cosmosService.GetUserConversationsShallowAsync("weiensteiner.stefan@gmail.com");
+
+    // click on conversation => explicitly load
+    var ccd2 = await cosmosService.GetUserConversationAsync(ccds.First().Id);
+
+    // talk + response + save
+    ccd2.AddChatMessage(true, "request", "English");
+    ccd2.AddChatMessage(false, "response", "English");
+    ccd2 = await cosmosService.AddOrUpdateChatConversationDataAsync(ccd2!);
+
+    // reopen app, login, load all conversations
+    ccds = await cosmosService.GetUserConversationsShallowAsync("weiensteiner.stefan@gmail.com");
+
+    // click on conversation => explicitly load
+    ccd2 = await cosmosService.GetUserConversationAsync(ccds.First().Id);
+
+    // delete conversation
+    await cosmosService.DeleteConversationAsync(ccd2!);
+    Console.WriteLine(  );
 }
 
 app.Run();

@@ -42,7 +42,7 @@ namespace patter_pal.dataservice.Azure
                 // Attempt to read the item from Cosmos DB
                 ItemResponse<T> existingItem = await container.ReadItemAsync<T>(
                     data.Id,
-                    new PartitionKey(data.Email));
+                    new PartitionKey(data.UserId));
 
                 // If the item exists, update it
                 modificationFunc(existingItem.Resource, data);
@@ -50,7 +50,7 @@ namespace patter_pal.dataservice.Azure
                 ItemResponse<T> response = await container.ReplaceItemAsync(
                     existingItem.Resource,
                     existingItem.Resource.Id,
-                    new PartitionKey(data.Email));
+                    new PartitionKey(data.UserId));
 
                 return response.Resource;
             }
@@ -59,7 +59,7 @@ namespace patter_pal.dataservice.Azure
                 // If the item does not exist, create a new one
                 ItemResponse<T> response = await container.CreateItemAsync(
                     data,
-                    new PartitionKey(data.Email));
+                    new PartitionKey(data.UserId));
 
                 return response.Resource;
             }
@@ -73,7 +73,7 @@ namespace patter_pal.dataservice.Azure
             {
                 ItemResponse<T> deletedItem = await container.DeleteItemAsync<T>(
                     data.Id,
-                    new PartitionKey(data.Email));
+                    new PartitionKey(data.UserId));
 
                 return;
             }

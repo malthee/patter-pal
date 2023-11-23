@@ -41,11 +41,6 @@ public class AuthController : Controller
             return RedirectToAction("Index", "Home");
         }
 
-        // Get the user's email (you can customize this based on your needs)
-        string email = info.Principal?.FindFirstValue(ClaimTypes.Email) ?? "";
-
-        await _userService.LoginUser(email);
-
         // Sign out of the external provider
         await HttpContext.SignOutAsync("Cookies");
 
@@ -58,7 +53,6 @@ public class AuthController : Controller
     {
         // Sign out the user
         HttpContext.SignOutAsync();
-        _userService.Logout();
 
         // Redirect to the home page or any other page after logout
         return RedirectToAction("Index", "Home");
