@@ -24,9 +24,8 @@ namespace patter_pal.Logic
             speechConfig.SpeechSynthesisVoiceName = _appConfig.SpeechSpeakerVoice;
             speechConfig.SpeechSynthesisLanguage = language;
 
-            using var speechSynthesizer = new SpeechSynthesizer(speechConfig, null);
+            using var speechSynthesizer = new SpeechSynthesizer(speechConfig, null); // null to not speak audio on server
             using var result = await speechSynthesizer.SpeakTextAsync(text);
-            //using var stream = AudioDataStream.FromResult(result);
 
             if (result.Reason == ResultReason.SynthesizingAudioCompleted)
             {

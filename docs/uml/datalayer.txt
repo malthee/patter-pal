@@ -1,0 +1,34 @@
+@startuml
+class ConversationData {
+    +Guid Id <<PK>>
+    +String Email <<FK>>
+    +String Title
+}
+
+class ChatData {
+    +Int Id
+    +Boolean IsUser
+    +String Text
+    +String Language
+}
+
+class WordData {
+    +String Text
+    +Double AccuracyScore
+    +String ErrorType
+}
+
+class SpeechPronounciationResultData {
+    +Guid Id <<PK>>
+    +String Email <<FK>>
+    +String Text
+    +String Language
+    +Double AccuracyScore
+    +Double FluencyScore
+    +Double CompletenessScore
+    +Double PronunciationScore
+}
+
+ConversationData "1" *-- "0..*" ChatData
+SpeechPronounciationResultData "1" *-- "0..*" WordData
+@enduml

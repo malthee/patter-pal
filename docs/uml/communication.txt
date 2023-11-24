@@ -1,0 +1,32 @@
+@startuml
+participant User
+participant "Azure App Service (AAS)" as AAS
+participant "Azure Cosmos DB" as DB
+participant "Azure Speech Pronunciation (ASP)" as ASP
+participant "OpenAI Chat Service (OCS)" as OCS
+participant "Azure Speech Synthesis (ASS)" as ASS
+
+User -> AAS: Request Websocket
+note over User: User waits for websocket to start
+AAS -> User: Websocket started
+
+User -> AAS: Speaks into microphone\nand streams data
+AAS -> ASP: Passes audio data
+ASP -> AAS: Provides recognized speech
+AAS -> User: Provides recognized speech as text
+note over User: Either user presses button\nor stops speaking
+AAS -> User: Provides full text\nand pronounciation assessment
+
+AAS -> DB: Request and add to Chat history
+DB -> AAS: Provides Chat history
+AAS -> OCS: Request with custom prompt, chat history and pronunciation assessment
+OCS -> AAS: Streams answer
+AAS -> User: Streams user-adjusted answer
+
+note left of OCS: Streaming answer finished
+AAS -> ASS: Requests speech synthesis of full answer
+ASS -> AAS: Returns audio result
+AAS -> User: Passes audio result
+AAS -> User: Closes the connection
+note over User: Plays audio
+@enduml
