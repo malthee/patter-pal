@@ -59,6 +59,13 @@ public class AuthController : Controller
     }
 
     [HttpPost]
+    public IActionResult DeleteEverything()
+    {
+        // TODO delete
+        return RedirectToAction("Index", "Home");
+    }
+
+    [HttpPost]
     public IActionResult SpecialAccess()
     {
         // TODO check if allowed and redirect

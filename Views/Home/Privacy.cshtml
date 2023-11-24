@@ -1,6 +1,78 @@
 ﻿@{
     ViewData["Title"] = "Privacy Policy";
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<div class="bg-light rounded-3 mt-3 p-3">
+    <h1>
+        <a asp-controller="Home" asp-action="Index" class="btn">
+            <img alt="PatterPal Logo" src="~/img/logo.svg" height="50" width="50" />
+        </a> PatterPal - @ViewData["Title"]
+    </h1>
+
+    <p>
+        This app was made for the Microsoft AI Classroom Hackathon. It's source code is publically available at
+        <a href="https://github.com/malthee/patter-pal">https://github.com/malthee/patter-pal</a>
+    </p>
+
+    <h2>1. Information Collection</h2>
+    <p><strong>a. Email-Based Accounts:</strong> If you register for an account using your email, we collect and store your email address. This is used for account verification.</p>
+    <p><strong>b. Conversations and Chats:</strong> We record and store the details of your conversations and chats with PatterPal. This includes both your input and the responses from PatterPal. This is required so you can access past conversations anytime.</p>
+    <p><strong>c. Pronunciation Analysis:</strong> When speaking with PatterPal, we collect and analyze data on your pronunciation accuracy and the mistakes made during spoken text exercises. This information is used to provide personalized feedback and improve your learning experience.</p>
+
+    <h2>3. How We Use Your Information</h2>
+    <p>
+        The information we collect is used to:
+        <ul>
+            <li>Provide, operate, and maintain our services.</li>
+            <li>Improve, personalize, and expand our services.</li>
+            <li>Understand and analyze how you use our services.</li>
+            <li>Develop new products, services, features, and functionality.</li>
+            <li>Communicate with you for service-related purposes.</li>
+        </ul>
+    </p>
+
+    <h2>Contact Us</h2>
+    <p>
+        If you have any questions about this Privacy Policy, please open an issue
+        <strong><a href="https://github.com/malthee/patter-pal/issues">https://github.com/malthee/patter-pal/issues</a></strong>.
+    </p>
+
+    <h2>Deleting Your Data</h2>
+    <p>If you are logged in your can delete your data anytime. Warning, this deletes all your data and is non-reversible and will log you out!</p>
+
+    @if (ViewData["IsLoggedIn"] as bool? == true)
+    {
+        <!-- Trigger Button -->
+        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal">
+            Delete Everything
+        </button>
+
+        <!-- Modal -->
+        <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLabel">Confirm Deletion</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        Are you sure you want to delete everything including your conversations, chats and pronunciation analysis? This action is non-reversible and will log you out.
+                    </div>
+                    <div class="modal-footer">
+                        <form id="deleteForm" asp-controller="Auth" asp-action="DeleteEverything" method="post">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button class="btn btn-danger">Confirm</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <h2>Impressum</h2>
+    <p>
+        <strong>Project Owners:</strong> Stefan Weißensteiner & Marcel Salvenmoser<br />
+        <strong>University:</strong> University of Applied Sciences Upper Austria<br />
+        <strong>Address:</strong> Softwarepark 11
+    </p>
+</div>

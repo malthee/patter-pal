@@ -22,8 +22,7 @@ namespace patter_pal.Controllers
         [Authorize(Policy = "LoggedInPolicy")]
         public async Task<IActionResult> App()
         {
-            ViewData["IsLoggedIn"] = await _userService.IsLoggedIn();
-
+            // TODO app with conversationid, get user id from claims etc.
             return View();
         }
 
@@ -46,8 +45,9 @@ namespace patter_pal.Controllers
         }
 
         [AllowAnonymous]
-        public IActionResult Privacy()
+        public async Task<IActionResult> Privacy()
         {
+            ViewData["IsLoggedIn"] = await _userService.IsLoggedIn();
             return View();
         }
 
