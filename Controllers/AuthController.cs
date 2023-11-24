@@ -58,4 +58,13 @@ public class AuthController : Controller
         return RedirectToAction("Index", "Home");
     }
 
+    [HttpPost]
+    public IActionResult SpecialAccess()
+    {
+        // TODO check if allowed and redirect
+        //return RedirectToAction("App", "Home");
+
+        TempData["Error"] = "Special Access Code Invalid";
+        return RedirectToAction("Index", "Home");
+    }
 }

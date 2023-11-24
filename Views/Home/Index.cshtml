@@ -5,30 +5,39 @@
     ViewData["Title"] = "Home Page";
 }
 
-
-<p>Hello this page is in development!</p>
-
-@if ((bool)ViewData["IsLoggedIn"]!)
-{
-    <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post">
-        @Html.AntiForgeryToken()
-
-        <button type="submit">Logout</button>
-    </form>
-}
-else
-{
-    <p>You need to be logged in if you want to use this app.</p>
-    <div class="oauth-buttons">
-        <div class="oauth-button">
-            <img src="img/google-icon.png" alt="Google Icon">
-            <a asp-controller="Auth" asp-action="ExternalLogin" asp-route-provider="Google">Login with Google</a>
-        </div>
-
-        <div class="oauth-button">
-            <img src="img/google-icon.png" alt="Googlebook Icon">
-            <a asp-controller="Auth" asp-action="ExternalLogin" asp-route-provider="Google">Login with Googlebook</a>
-        </div>
-        <!-- Add more OAuth options as needed -->
+<div class="container-sm d-flex flex-column vh-100-no-footer align-items-center justify-content-center">
+    <div class="text-center bg-light rounded-3 me-2 p-2">
+        <h1><img alt="PatterPal Logo" src="~/img/logo.svg" height="50" width="50" />&nbsp;PatterPal&nbsp;</h1>
+        <h3>Your personal language teacher</h3>
     </div>
-}
+
+    <div class="text-center login-button mt-3">
+        <!-- Google Login Button -->
+        <a asp-controller="Auth" asp-action="ExternalLogin" asp-route-provider="Google" class="btn btn-light d-flex align-items-center justify-content-center">
+            <img src="img/google-icon.png" alt="Google Icon" height="24" width="24"> Login with Google
+        </a>
+    </div>
+
+    <div class="text-center login-button mt-3">
+        <!-- Collapsible for Access Code -->
+        <button class="btn btn-primary d-flex justify-content-center w-100" type="button" data-bs-toggle="collapse" data-bs-target="#accessCodeCollapse" aria-expanded="false" aria-controls="accessCodeCollapse">
+            Use Special Access Code
+        </button>
+        <div class="collapse" id="accessCodeCollapse">
+            <div class="card card-body">
+                <form id="accessForm" asp-controller="Auth" asp-action="SpecialAccess" method="post">
+                    <input type="text" class="form-control" placeholder="Format: aaaaa-aaaaa">
+                    <button class="btn btn-success mt-2">Login</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    @if (ViewData["Error"] != null)
+    {
+        <div class="login-button mt-3 alert alert-danger alert-dismissible fade show" role="alert">
+            @ViewData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"/>
+        </div>
+    }
+</div>

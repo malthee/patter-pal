@@ -7,13 +7,10 @@
 <div class="fixed-top text-end mt-4 me-4">
     <a href="#" title="Toggle History" class="text-decoration-none border-4 rounded-circle bg-light menu-button" data-bs-toggle="collapse" data-bs-target="#leftMenu" aria-expanded="false" aria-controls="leftMenu">📃</a>
     <a href="#" title="Show Stats" class="text-decoration-none border-4 rounded-circle bg-light menu-button">📊</a> <!-- TODO stats -->
-    @if ((bool)ViewData["IsLoggedIn"]!)
-    {
-        <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post" class="align-top d-inline-block">
-            @Html.AntiForgeryToken()
-            <button type="submit" title="Logout" class="btn btn-light m-0 p-0 text-decoration-none border-4 rounded-circle menu-button">🚪</button>
-        </form>
-    }
+    <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post" class="align-top d-inline-block">
+        @Html.AntiForgeryToken()
+        <button type="submit" title="Logout" class="btn btn-light m-0 p-0 text-decoration-none border-4 rounded-circle menu-button">🚪</button>
+    </form>
 </div>
 <div class="row vh-100-no-footer align-items-start align-items-md-center justify-content-center g-4">
     <!-- Left column for list menu -->

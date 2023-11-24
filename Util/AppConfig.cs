@@ -23,11 +23,11 @@ namespace patter_pal.Util
         public string GoogleOAuthClientID { get; set; } = string.Empty;
         public string GoogleOAuthClientSecret { get; set; } = string.Empty;
         public string DbConnectionString { get; set; } = string.Empty;
-        public string CosmosDbDb1 { get; set; } = string.Empty;
-        public string CosmosDbDb1C1 { get; set; } = string.Empty;
-        public string CosmosDbDb1C1PK { get; set; } = string.Empty;
-        public string CosmosDbDb1C2 { get; set; } = string.Empty;
-        public string CosmosDbDb1C2PK { get; set; } = string.Empty;
+        public string CosmosDbDb1 { get; set; } = "db1";
+        public string CosmosDbDb1C1 { get; set; } = "c1";
+        public string CosmosDbDb1C1PK { get; set; } = "/UserId";
+        public string CosmosDbDb1C2 { get; set; } = "c2";
+        public string CosmosDbDb1C2PK { get; set; } = "/UserId";
 
         // --- Transfer settings --- //
         public int HttpTimeout { get; set; } = 20; // Seconds
