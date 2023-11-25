@@ -28,6 +28,7 @@ namespace patter_pal.Util
         public string CosmosDbDb1C1PK { get; set; } = "/UserId";
         public string CosmosDbDb1C2 { get; set; } = "c2";
         public string CosmosDbDb1C2PK { get; set; } = "/UserId";
+        public string ValidSpecialCodes { get; set; } = string.Empty;
 
         // --- Transfer settings --- //
         public int HttpTimeout { get; set; } = 20; // Seconds
