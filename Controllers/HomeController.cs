@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using patter_pal.Logic;
 using patter_pal.Models;
@@ -72,6 +73,12 @@ namespace patter_pal.Controllers
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
+            var ex = HttpContext.Features.Get<IExceptionHandlerFeature>();
+            if (ex == null)
+            {
+                return RedirectToAction(nameof(Index));
+            }
+
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }

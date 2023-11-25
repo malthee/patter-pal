@@ -2,50 +2,59 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.Extensions.Options;
 using patter_pal.dataservice.Azure;
-using patter_pal.dataservice.DataObjects;
 using patter_pal.Logic;
 using patter_pal.Logic.Cosmos;
 using patter_pal.Logic.Interfaces;
 using patter_pal.Util;
 
-var builder = WebApplication.CreateBuilder(args);
+static void ConfigureAuth(WebApplicationBuilder builder, AppConfig appConfig)
+{
+    builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+    })
+    .AddCookie(options =>
+    {
+        options.ExpireTimeSpan = TimeSpan.FromDays(1);
+        options.AccessDeniedPath = "/Home/Index";
+        options.LoginPath = "/Home/Index";
+    })
+    .AddGoogle(options =>
+    {
+        options.ClientId = appConfig.GoogleOAuthClientID;
+        options.ClientSecret = appConfig.GoogleOAuthClientSecret;
+    });
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy("LoggedInPolicy", policy => policy.RequireAuthenticatedUser());
+    });
+}
 
-// Add services to the container.
-builder.Services.AddControllersWithViews();
+static void ConfigureServices(WebApplicationBuilder builder, AppConfig appConfig)
+{
+    builder.Services.AddControllersWithViews();
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddSingleton(appConfig);
+    builder.Services.AddSingleton(sp => new CosmosService(appConfig.DbConnectionString, appConfig.CosmosDbDb1, appConfig.CosmosDbDb1C1, appConfig.CosmosDbDb1C1PK, appConfig.CosmosDbDb1C2, appConfig.CosmosDbDb1C2PK));
+    builder.Services.AddScoped<IConversationService, ConversationService>();
+    builder.Services.AddScoped<UserService>();
+    builder.Services.AddSingleton<SpeechPronounciationService>();
+    builder.Services.AddSingleton<OpenAiService>();
+    builder.Services.AddSingleton<SpeechSynthesisService>();
+    // Add client with lowered timeout for OpenAI
+    builder.Services.AddHttpClient(Options.DefaultName, c => c.Timeout = TimeSpan.FromSeconds(appConfig.HttpTimeout));
+}
+
+// Start
+var builder = WebApplication.CreateBuilder(args);
 var appConfig = new AppConfig();
+
 builder.Configuration.GetSection("AppConfig").Bind(appConfig);
 appConfig.ValidateConfigInitialized();
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton(appConfig);
-builder.Services.AddSingleton(sp => new CosmosService(appConfig.DbConnectionString, appConfig.CosmosDbDb1, appConfig.CosmosDbDb1C1, appConfig.CosmosDbDb1C1PK, appConfig.CosmosDbDb1C2, appConfig.CosmosDbDb1C2PK));
-builder.Services.AddScoped<IConversationService, ConversationService>();
-builder.Services.AddScoped<UserService>();
-builder.Services.AddSingleton<SpeechPronounciationService>();
-builder.Services.AddSingleton<OpenAiService>();
-builder.Services.AddSingleton<SpeechSynthesisService>();
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
-})
-.AddCookie(options =>
-{
-    options.ExpireTimeSpan = TimeSpan.FromDays(1);
-    options.AccessDeniedPath = "/Home/Index";
-    options.LoginPath = "/Home/Index";
-})
-.AddGoogle(options =>
-{
-    options.ClientId = appConfig.GoogleOAuthClientID;
-    options.ClientSecret = appConfig.GoogleOAuthClientSecret;
-});
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("LoggedInPolicy", policy => policy.RequireAuthenticatedUser());
-});
 
-// Add client with lowered timeout for OpenAI
-builder.Services.AddHttpClient(Options.DefaultName, c => c.Timeout = TimeSpan.FromSeconds(appConfig.HttpTimeout));
+ConfigureServices(builder, appConfig);
+ConfigureAuth(builder, appConfig);
 
 var app = builder.Build();
 
