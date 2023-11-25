@@ -26,6 +26,23 @@ namespace patter_pal.Controllers
             return View();
         }
 
+        [Authorize(Policy = "LoggedInPolicy")]
+        public async Task<IActionResult> Stats()
+        {
+            bool loggedIn = await _userService.IsLoggedIn();
+            if (!loggedIn)
+            {
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (TempData["Error"] != null)
+            {
+                ViewData["Error"] = TempData["Error"];
+            }
+
+            return View();
+        }
+
         [AllowAnonymous]
         public async Task<IActionResult> Index()
         {

@@ -16,14 +16,13 @@ var appConfig = new AppConfig();
 builder.Configuration.GetSection("AppConfig").Bind(appConfig);
 appConfig.ValidateConfigInitialized();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton(sp => new CosmosService(appConfig.DbConnectionString, appConfig.CosmosDbDb1, appConfig.CosmosDbDb1C1, appConfig.CosmosDbDb1C1PK, appConfig.CosmosDbDb1C2, appConfig.CosmosDbDb1C2PK));
 builder.Services.AddSingleton(appConfig);
-builder.Services.AddSingleton<SpeechPronounciationService>();
-builder.Services.AddSingleton<ConversationService>();
-builder.Services.AddSingleton<OpenAiService>();
+builder.Services.AddSingleton(sp => new CosmosService(appConfig.DbConnectionString, appConfig.CosmosDbDb1, appConfig.CosmosDbDb1C1, appConfig.CosmosDbDb1C1PK, appConfig.CosmosDbDb1C2, appConfig.CosmosDbDb1C2PK));
+builder.Services.AddScoped<IConversationService, ConversationService>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddSingleton<SpeechPronounciationService>();
+builder.Services.AddSingleton<OpenAiService>();
 builder.Services.AddSingleton<SpeechSynthesisService>();
-builder.Services.AddSingleton<IConversationService, ConversationService>();
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -89,6 +88,8 @@ using (var scope = app.Services.CreateScope())
 {
     CosmosService cosmosService = scope.ServiceProvider.GetService<CosmosService>()!;
     await cosmosService.InitializeService();
+    // until #17 is done, use dummy conversation id
+
     /*
     IConversationService conversationService = scope.ServiceProvider.GetService<IConversationService>()!;
     string userId = "id";
