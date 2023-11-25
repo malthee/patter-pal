@@ -1,6 +1,6 @@
 ﻿using patter_pal.dataservice.DataObjects;
 
-namespace patter_pal.Logic
+namespace patter_pal.Logic.Interfaces
 {
     public interface IConversationService
     {
@@ -11,7 +11,7 @@ namespace patter_pal.Logic
         /// <param name="conversationData"></param>
         /// <returns></returns>
         Task<bool> AddConversationAsync(string userId, ConversationData conversationData);
-        
+
         /// <summary>
         /// Assigns an Id to <paramref name="chat"/>.
         /// </summary>

@@ -1,13 +1,9 @@
-﻿using Microsoft.CognitiveServices.Speech.Transcription;
-using patter_pal.Controllers;
+﻿using patter_pal.Controllers;
 using patter_pal.dataservice.Azure;
 using patter_pal.dataservice.DataObjects;
-using patter_pal.Models;
-using patter_pal.Util;
-using System;
-using System.Net.Http.Headers;
+using patter_pal.Logic.Interfaces;
 
-namespace patter_pal.Logic
+namespace patter_pal.Logic.Cosmos
 {
     public class ConversationService : IConversationService
     {

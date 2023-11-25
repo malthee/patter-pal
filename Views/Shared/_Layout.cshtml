@@ -9,9 +9,12 @@
     <link rel="apple-touch-icon" sizes="180x180" href="~/img/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="~/img/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="~/img/favicon-16x16.png">
-    <link rel="manifest" href="~/img/site.webmanifest">
+    <link rel="manifest" href="~/site.webmanifest">
 </head>
 <body class="vh-100 d-flex flex-column">
+    <div id="toast-container" aria-live="polite" aria-atomic="true" class="position-fixed top-0 start-50 translate-middle-x p-3 z-index-3">
+        <!-- Toasts will go here -->
+    </div>
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()

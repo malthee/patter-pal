@@ -1,7 +1,8 @@
 ﻿using Microsoft.CognitiveServices.Speech;
-using Microsoft.CognitiveServices.Speech.Audio;
+using patter_pal.Models;
 using patter_pal.Util;
 using System.Net.WebSockets;
+using System.Text.Json;
 
 namespace patter_pal.Logic
 {
@@ -16,7 +17,7 @@ namespace patter_pal.Logic
             _appConfig = appConfig;
         }
 
-        public async Task StreamSynthesizedText(WebSocket ws, string text, string language)
+        public async Task SendSynthesizedText(WebSocket ws, string text, string language)
         {
             _logger.LogDebug($"Starting Speech-Synthesis with language {language} and voice {_appConfig.SpeechSpeakerVoice}");
             var speechConfig = SpeechConfig.FromSubscription(_appConfig.SpeechSubscriptionKey, _appConfig.SpeechRegion);
@@ -24,9 +25,8 @@ namespace patter_pal.Logic
             speechConfig.SpeechSynthesisVoiceName = _appConfig.SpeechSpeakerVoice;
             speechConfig.SpeechSynthesisLanguage = language;
 
-            using var speechSynthesizer = new SpeechSynthesizer(speechConfig, null);
-            using var result = await speechSynthesizer.SpeakTextAsync(text);
-            //using var stream = AudioDataStream.FromResult(result);
+            using var speechSynthesizer = new SpeechSynthesizer(speechConfig, null); // null to not speak audio on server
+            using var result = await speechSynthesizer.SpeakTextAsync(text); // TODO SSML with IPA
 
             if (result.Reason == ResultReason.SynthesizingAudioCompleted)
             {
@@ -43,6 +43,8 @@ namespace patter_pal.Logic
                 if (cancellation.Reason == CancellationReason.Error)
                 {
                     _logger.LogError($"Synthesis error: {cancellation.ErrorCode} - {cancellation.ErrorDetails}");
+                    var error = new ErrorResponse("Speech output is unavailable. Please try again later.", ErrorResponse.ErrorCode.SynthesisServiceError);
+                    await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<ErrorResponse>(error, SocketResultType.Error)));
                 }
             }
         }

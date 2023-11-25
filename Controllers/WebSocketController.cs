@@ -34,6 +34,7 @@ namespace patter_pal.Controllers
         /// <param name="conversationId">Id of conversation if this is adding to an existing conversation</param>
         public async Task StartConversation(string language, Guid? conversationId = null)
         {
+            // TODO integrate userId auth
             if (!Regex.IsMatch(language, "^[a-zA-Z]{2}-[a-zA-Z1-9]{2,3}$"))
             {
                 _logger.LogWarning($"Invalid language format: {language}");
@@ -57,8 +58,6 @@ namespace patter_pal.Controllers
             if (reconitionResult == null)
             {
                 _logger.LogWarning("Returned null from SpeechPronounciationService, aborting WebSocket");
-                // May move error messages into service
-                await WebSocketHelper.SendTextWhenOpen(webSocket, JsonSerializer.Serialize(new ErrorResponse("Could not analyze speech. Please try again later.")));
                 webSocket.Abort();
                 return;
             }
@@ -68,15 +67,14 @@ namespace patter_pal.Controllers
             var conversationAnswer = await _openAiService.StreamAndGenerateAnswer(webSocket, reconitionResult, language, conversationId);
             if (conversationAnswer == null)
             {
-                _logger.LogWarning("Returned null from OpenAiService, aborting WebSocket");
-                await WebSocketHelper.SendTextWhenOpen(webSocket, JsonSerializer.Serialize(new ErrorResponse("Could not get response. Please try again later.")));
+                _logger.LogWarning("Returned null from OpenAiService, aborting WebSocket");;
                 webSocket.Abort();
                 return;
             }
 
             // Synthesize answer
             if (!ShouldContinueConversationFlow(webSocket)) return;
-            await _speechSynthesisService.StreamSynthesizedText(webSocket, conversationAnswer.Text, language);
+            await _speechSynthesisService.SendSynthesizedText(webSocket, conversationAnswer.Text, language);
 
             await webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Finished", CancellationToken.None);
             _logger.LogDebug("WebSocket workflow finished");

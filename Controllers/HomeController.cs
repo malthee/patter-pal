@@ -19,27 +19,35 @@ namespace patter_pal.Controllers
             _userService = userService;
         }
 
-        
-
         [Authorize(Policy = "LoggedInPolicy")]
         public async Task<IActionResult> App()
         {
-            ViewData["IsLoggedIn"] = await _userService.IsLoggedIn();
-
+            // TODO app with conversationid, get user id from claims etc.
             return View();
         }
 
         [AllowAnonymous]
         public async Task<IActionResult> Index()
         {
-            ViewData["IsLoggedIn"] = await _userService.IsLoggedIn();
+            bool loggedIn = await _userService.IsLoggedIn();
+            if (loggedIn)
+            {
+                return RedirectToAction(nameof(App));
+            }
 
+            if (TempData["Error"] != null)
+            {
+                ViewData["Error"] = TempData["Error"];
+            }
+
+            ViewData["IsLoggedIn"] = loggedIn;
             return View();
         }
 
         [AllowAnonymous]
-        public IActionResult Privacy()
+        public async Task<IActionResult> Privacy()
         {
+            ViewData["IsLoggedIn"] = await _userService.IsLoggedIn();
             return View();
         }
 

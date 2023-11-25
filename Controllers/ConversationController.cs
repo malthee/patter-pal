@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using patter_pal.Logic;
+using patter_pal.Logic.Interfaces;
 using patter_pal.Models;
 
 namespace patter_pal.Controllers
