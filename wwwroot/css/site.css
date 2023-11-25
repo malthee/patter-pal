@@ -45,6 +45,7 @@ body {
     height: 9rem;
     width: 9rem;
     position: relative;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
     #micButton.active {
@@ -57,6 +58,7 @@ body {
     width: 4.5rem;
     height: 4.5rem;
     font-size: 3rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 #languageSelectContainer {

@@ -13,8 +13,9 @@
     </form>
 </div>
 <div class="row vh-100-no-footer align-items-start align-items-md-center justify-content-center g-4">
+    <div class="py-5 p-lg-0 d-lg-none" id="topSpacer"/></div>
     <!-- Left column for list menu -->
-    <div class="max-height-500 col-12 col-lg-3 collapse show overflow-auto align-self-end align-self-lg-center mt-5 pt-5 mt-lg-0 pt-lg-0" id="leftMenu">
+    <div class="max-height-500 col-12 col-lg-3 collapse overflow-auto align-self-end align-self-lg-center" id="leftMenu">
         <div class="list-group">
             <!-- todo link to new chat, link asp other page -->
             <a href="#" class="list-group-item list-group-item-action">➕ New Conversation</a>
@@ -24,7 +25,7 @@
     </div>
 
     <!-- Middle column for microphone, language selector, and state label -->
-    <div class="max-height-500 col-12 col-lg-3 mt-5 text-center align-self-end align-self-lg-center">
+    <div class="max-height-500 col-12 col-lg-3 text-center align-self-end align-self-lg-center">
         <button id="micButton" type="button" title="Start Recording" class="btn btn-light rounded-circle border-4">
             <span>🎙</span>
         </button>
@@ -55,9 +56,15 @@
             <span class="speaker-img right">😀</span>
         </div>
         <!-- Only show when no convo TODO -->
+        <div class="d-flex w-100 align-items-center mb-3">
+            <span class="speaker-img left">😁</span>
+            <div class="bg-primary text-white rounded-3 ms-2 p-2">
+                <p class="mb-0 text-break bubble-text">Start talking with Patter Pal by pressing the 🎙 button. You can ask questions, talk about your day and switch language any time!</p>
+            </div>
+        </div>
         <div class="d-flex w-100 align-items-center justify-content-end mb-3">
             <div class="bg-light rounded-3 me-2 p-2">
-                <p class="mb-0 text-break bubble-text">Start talking with Patter Pal by pressing the 🎙 button. You can ask questions, talk about your day and switch language any time!</p>
+                <p class="mb-0 text-break bubble-text">Want to practice your language skills? Ask me about common topics like family, food, living and current events. I can also give you suggestions if you ask me.</p>
             </div>
             <span class="speaker-img right">😀</span>
         </div>

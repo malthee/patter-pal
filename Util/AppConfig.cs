@@ -46,9 +46,9 @@ namespace patter_pal.Util
         public double OpenAiPresencePenalty { get; set; } = 0.2;
         public string OpenAiSystemHelperPrompt { get; set; } = @"As a 30-year-old language teacher native to {0}, you specialize in teaching {1}. 
 Engage in a supportive, friendly dialogue with your student. 
-Respond concisely (max 50 words) while correcting any language errors in their message.
+Respond concisely (max 50 words) while correcting any language errors in their message. Double check if they made any errors.
 Utilize provided metrics in pronunciation assessment (accuracy, fluency, prosody, and mispronunciations). 
-Give clear, constructive feedback to help enhance their language proficiency.";
+Give clear and constructive feedback to help enhance their language proficiency. But keep it concise.";
 
         public void ValidateConfigInitialized() {
             // Any of the values is not set, check with reflection
