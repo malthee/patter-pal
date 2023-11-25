@@ -1,0 +1,175 @@
+﻿@using patter_pal.Util;
+@using patter_pal.Models;
+@using patter_pal.Logic;
+@{
+    ViewData["Title"] = "Stats";
+}
+
+<h1>POGGERS STATS!</h1>
+
+<canvas id="chartContainer" style="width: 80%; height: 50%; max-height: 70%;"></canvas>
+<h3>Worst Words by Language:</h3>
+<table id="wordsTable"></table>
+
+<!-- filter by language -->
+<div class="max-height-500 col-12 col-lg-3 text-center align-self-end align-self-lg-center">
+    <form id="languageFilterForm">
+        <div id="languageSelectContainer" class="pt-3 fade-in">
+            <h3>Filter stats by language:</h3>
+            <select class="form-select text-center" id="languageSelect" title="Which language you want to filter">
+                <option value="All" selected="true">All Languages</option>
+                @foreach (var language in LanguageConstants.Languages)
+                {
+                    <option value="@language.Key">@language.Value</option>
+                }
+            </select>
+            <button type="submit" class="btn btn-primary mt-3">Apply Filter</button>
+        </div>
+    </form>
+</div>
+
+@section scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Define a function to update the chart based on the selected language
+            function updateChart(selectedLanguage) {
+                // Make an AJAX request to fetch data
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', '/Stats/Data?language=' + selectedLanguage, true);
+
+                // Helper function to group an array of objects by a specified key
+                // Helper function to group an array of objects by a specified key
+                function groupBy(array, key) {
+                    return array.reduce((result, obj) => {
+                        var keyValue = obj[key];
+                        result[keyValue] = (result[keyValue] || []).concat(obj);
+                        return result;
+                    }, {});
+                }
+
+                xhr.onload = function () {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        // Parse the JSON response
+                        var responseData = JSON.parse(xhr.responseText);
+                        var responseDataChart = responseData.speechAssessments;
+
+                        // Convert Timestamp to moment objects
+                        var timestamps = responseDataChart.map(function (entry) {
+                            return moment(entry.timestamp);
+                        });
+
+                        // Extract data for Chart.js
+                        var data = {
+                            labels: timestamps,
+                            datasets: [
+                                {
+                                    label: 'Accuracy Score',
+                                    data: responseDataChart.map(function (entry) {
+                                        return entry.accuracyScore;
+                                    }),
+                                    borderColor: 'rgba(75, 192, 192, 1)',
+                                    fill: false
+                                },
+                                {
+                                    label: 'Fluency Score',
+                                    data: responseDataChart.map(function (entry) {
+                                        return entry.fluencyScore;
+                                    }),
+                                    borderColor: 'rgba(255, 99, 132, 1)',
+                                    fill: false
+                                },
+                                {
+                                    label: 'Completeness Score',
+                                    data: responseDataChart.map(function (entry) {
+                                        return entry.completenessScore;
+                                    }),
+                                    borderColor: 'rgba(54, 162, 235, 1)',
+                                    fill: false
+                                },
+                                {
+                                    label: 'Pronunciation Score',
+                                    data: responseDataChart.map(function (entry) {
+                                        return entry.pronounciationScore;
+                                    }),
+                                    borderColor: 'rgba(255, 206, 86, 1)',
+                                    fill: false
+                                }
+                            ]
+                        };
+
+                        // Get the chart canvas context
+                        var ctx = document.getElementById('chartContainer').getContext('2d');
+
+                        // Check if the chart already exists, and destroy it before creating a new one
+                        if (window.myChart) {
+                            window.myChart.destroy();
+                        }
+
+                        // Create a new chart
+                        window.myChart = new Chart(ctx, {
+                            type: 'line',
+                            data: data,
+                            options: {
+                                responsive: true,
+                                scales: {
+                                    x: {
+                                        type: 'time',
+                                        time: {
+                                            unit: 'day',
+                                            minUnit: 'day',
+                                            displayFormats: {
+                                                day: 'MMM D' // Format for the day, e.g., Jan 1
+                                            },
+                                            tooltipFormat: 'MMM D, YYYY'
+                                        },
+                                        title: {
+                                            display: true,
+                                            text: 'Timestamp'
+                                        }
+                                    },
+                                    y: {
+                                        title: {
+                                            display: true,
+                                            text: 'Score'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+
+                        // Create a table showing the top 10 words with the lowest average AccuracyScore
+                        var wordsTable = document.getElementById('wordsTable');
+                        wordsTable.innerHTML = ''; // Clear previous content
+                        
+                        // Create table headers
+                        var tableHeader = '<tr><th>Word</th><th>Average Accuracy Score</th></tr>';
+                        wordsTable.innerHTML += tableHeader;
+
+                        // Populate the table
+                        responseData.bottomTenWords.forEach(word => {
+                            var row = '<tr><td>' + word.text + '</td><td>' + word.averageAccuracy.toFixed(2) + '</td></tr>';
+                            wordsTable.innerHTML += row;
+                        });
+
+                    }
+                };
+
+                xhr.send();
+            }
+
+            // Attach a submit event listener to the form
+            document.getElementById('languageFilterForm').addEventListener('submit', function (event) {
+                event.preventDefault(); // Prevent the form from submitting in the traditional way
+
+                // Get the selected language from the dropdown
+                var selectedLanguage = document.getElementById('languageSelect').value;
+
+                // Call the updateChart function with the selected language
+                updateChart(selectedLanguage);
+            });
+        });
+    </script>
+}

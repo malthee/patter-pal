@@ -39,7 +39,6 @@ namespace patter_pal.dataservice.Azure
 
             try
             {
-
                 // Attempt to read the item from Cosmos DB
                 ItemResponse<T> existingItem = await container.ReadItemAsync<T>(
                     data.Id,
@@ -61,6 +60,11 @@ namespace patter_pal.dataservice.Azure
                 await container.CreateItemAsync(
                     data,
                     new PartitionKey(data.UserId));
+
+                return true;
+            }
+            catch (Exception)
+            {
 
                 return false;
             }

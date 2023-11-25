@@ -79,6 +79,7 @@ namespace patter_pal.dataservice.Azure
 
         public async Task<bool> AddSpeechPronounciationResultDataAsync(string userId, SpeechPronounciationResultData data)
         {
+            data.Id = Guid.NewGuid().ToString();
             data.UserId = userId;
             return await _cosmosServiceContainerSpeech.AddOrUpdateAsync(data, (db, arg) =>
             {

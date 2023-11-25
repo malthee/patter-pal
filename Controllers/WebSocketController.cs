@@ -1,5 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.CognitiveServices.Speech.PronunciationAssessment;
+using patter_pal.dataservice.Azure;
+using patter_pal.dataservice.DataObjects;
 using patter_pal.Logic;
+using patter_pal.Logic.Interfaces;
 using patter_pal.Models;
 using patter_pal.Util;
 using System.Net.WebSockets;
@@ -17,13 +21,19 @@ namespace patter_pal.Controllers
         private readonly SpeechPronounciationService _speechPronounciationService;
         private readonly OpenAiService _openAiService;
         private readonly SpeechSynthesisService _speechSynthesisService;
+        private readonly UserService _userService;
+        private readonly CosmosService _cosmosService;
+        private readonly IConversationService _conversationService;
 
-        public WebSocketController(ILogger<HomeController> logger, SpeechPronounciationService speechPronounciationService, OpenAiService openAiService, SpeechSynthesisService speechSynthesisService)
+        public WebSocketController(ILogger<HomeController> logger, SpeechPronounciationService speechPronounciationService, OpenAiService openAiService, SpeechSynthesisService speechSynthesisService, UserService userService, CosmosService cosmosService, IConversationService conversationService)
         {
             _logger = logger;
             _speechPronounciationService = speechPronounciationService;
             _openAiService = openAiService;
             _speechSynthesisService = speechSynthesisService;
+            _userService = userService;
+            _cosmosService = cosmosService;
+            _conversationService = conversationService;
         }
 
         /// <summary>
@@ -34,7 +44,14 @@ namespace patter_pal.Controllers
         /// <param name="conversationId">Id of conversation if this is adding to an existing conversation</param>
         public async Task StartConversation(string language, Guid? conversationId = null)
         {
-            // TODO integrate userId auth
+            string? userId = await _userService.GetUserId();
+            if (userId == null)
+            {
+                _logger.LogWarning($"User not logged in");
+                HttpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return;
+            }
+
             if (!Regex.IsMatch(language, "^[a-zA-Z]{2}-[a-zA-Z1-9]{2,3}$"))
             {
                 _logger.LogWarning($"Invalid language format: {language}");
@@ -58,6 +75,50 @@ namespace patter_pal.Controllers
             if (reconitionResult == null)
             {
                 _logger.LogWarning("Returned null from SpeechPronounciationService, aborting WebSocket");
+                webSocket.Abort();
+                return;
+            }
+            /*
+            // add new conversation if conversationId was null
+            if (string.IsNullOrEmpty(conversationId))
+            {
+                ConversationData newConversation = new() { Title = $"New Conversation ({language})" };
+                bool addConversationResult = await _conversationService.AddConversationAsync(userId, newConversation);
+                if (!addConversationResult)
+                {
+                    _logger.LogWarning("Could not add conversation");
+                    webSocket.Abort();
+                    return;
+                }
+                conversationId = newConversation.Id;
+            }
+
+            bool addChatSuccess = await _conversationService.AddChatAsync(userId, conversationId, new ChatData(true, reconitionResult.Text, language));
+            if (!addChatSuccess)
+            {
+                _logger.LogWarning("Could not add chat message");
+                webSocket.Abort();
+                return;
+            }
+            */
+
+            var pronounciationResult = PronunciationAssessmentResult.FromResult(reconitionResult);
+            var speechResultData = new SpeechPronounciationResultData
+            {
+                Language = language,
+                Timestamp = DateTime.UtcNow,
+                UserId = userId,
+                AccuracyScore = (decimal)pronounciationResult.AccuracyScore,
+                FluencyScore = (decimal)pronounciationResult.FluencyScore,
+                CompletenessScore = (decimal)pronounciationResult.CompletenessScore,
+                PronounciationScore = (decimal)pronounciationResult.PronunciationScore,
+                Words = new(pronounciationResult.Words.Select(w => new WordData() { AccuracyScore = (decimal)w.AccuracyScore, ErrorType = w.ErrorType, Text = w.Word }))
+
+            };
+            bool addSpeechResultSuccess = await _cosmosService.AddSpeechPronounciationResultDataAsync(userId, speechResultData);
+            if (!addSpeechResultSuccess)
+            {
+                _logger.LogWarning("Could not add speech result");
                 webSocket.Abort();
                 return;
             }
