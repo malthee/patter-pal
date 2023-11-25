@@ -26,9 +26,9 @@ namespace patter_pal.Logic
             {
                 return null;
             }
+
             AuthenticateResult info = await httpContext.AuthenticateAsync("Cookies");
             return info.Principal?.FindFirstValue(ClaimTypes.Email);
         }
-
     }
 }

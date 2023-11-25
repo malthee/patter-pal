@@ -8,6 +8,7 @@ using System.Text.Json;
 using patter_pal.Models;
 using static patter_pal.Models.SpeechPronounciationResult;
 using static System.Net.Mime.MediaTypeNames;
+using Microsoft.Azure.Cosmos.Serialization.HybridRow;
 
 namespace patter_pal.Logic
 {
@@ -46,8 +47,9 @@ namespace patter_pal.Logic
             using var recognizer = new SpeechRecognizer(_speechConfig, language, audioConfig);
 
             SpeechRecognitionResult? recognitionResult = null;
-            string? error = null;
-            InitRecognizer(language, recognizer, ws, (r) => recognitionResult ??= r, (e) => error ??= e);
+            ErrorResponse? error = null;
+            // Get results from recognizer through callbacks
+            InitRecognizer(recognizer, ws, (r) => recognitionResult ??= r, (e) => error ??= e);
             await recognizer.StartContinuousRecognitionAsync().ConfigureAwait(false);
 
             try
@@ -65,10 +67,7 @@ namespace patter_pal.Logic
                                 _logger.LogDebug("One byte received, manual end signal.");
                                 await recognizer.StopContinuousRecognitionAsync();
                             }
-                            else
-                            {
-                                audioInputStream.Write(buffer.AsSpan(0, result.Count).ToArray());
-                            }
+                            else audioInputStream.Write(buffer.AsSpan(0, result.Count).ToArray());
                             break;
                         case WebSocketMessageType.Close:
                             await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client closed", CancellationToken.None);
@@ -78,6 +77,25 @@ namespace patter_pal.Logic
                             _logger.LogWarning("Received unexpected message from WebSocket");
                             break;
                     }
+                }
+
+                if (recognitionResult != null)
+                {
+                    // Send result to user
+                    var pronounciation = PronunciationAssessmentResult.FromResult(recognitionResult);
+                    var result = new SpeechPronounciationResult(recognitionResult.Text,
+                        language,
+                        pronounciation.AccuracyScore,
+                        pronounciation.FluencyScore,
+                        pronounciation.CompletenessScore,
+                        pronounciation.PronunciationScore,
+                        pronounciation.Words.Select(w => new Word(w.Word, w.AccuracyScore, w.ErrorType)).ToList()
+                    );
+                    await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<SpeechPronounciationResult>(result, SocketResultType.SpeechResult)));
+                }
+                else // Error may happen after result, ignore it if a successful result happened before
+                {
+                    if (error != null) await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<ErrorResponse>(error, SocketResultType.Error)));
                 }
             }
             catch (Exception e)
@@ -89,7 +107,7 @@ namespace patter_pal.Logic
             return recognitionResult;
         }
 
-        private void InitRecognizer(string language, SpeechRecognizer recognizer, WebSocket ws, Action<SpeechRecognitionResult> onResult, Action<string> onError)
+        private void InitRecognizer(SpeechRecognizer recognizer, WebSocket ws, Action<SpeechRecognitionResult> onResult, Action<ErrorResponse> onError)
         {
             _pronunciationAssessmentConfig.ApplyTo(recognizer);
 
@@ -108,23 +126,11 @@ namespace patter_pal.Logic
                 {
                     onResult(e.Result);
                     await recognizer.StopContinuousRecognitionAsync(); // Stop recognition after first result to exit more quickly
-                    var pronounciation = PronunciationAssessmentResult.FromResult(e.Result);
-                    var result = new SpeechPronounciationResult(e.Result.Text,
-                        language,
-                        pronounciation.AccuracyScore,
-                        pronounciation.FluencyScore,
-                        pronounciation.CompletenessScore,
-                        pronounciation.PronunciationScore,
-                        pronounciation.Words.Select(w => new Word(w.Word, w.AccuracyScore, w.ErrorType)).ToList()
-                    );
-                    // User gets full result
-                    await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<SpeechPronounciationResult>(result, SocketResultType.SpeechResult)));
                 }
                 else
                 {
                     _logger.LogDebug($"Did not recognize speech: '{e.Result.Reason}");
-                    var errorResponse = new ErrorResponse("Could not recognize speech. The recording might be too short.");
-                    await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<ErrorResponse>(errorResponse, SocketResultType.Error)));
+                    onError(new ErrorResponse("Could not recognize speech. The recording might be too short or your microphone might be turned off.", ErrorResponse.ErrorCode.NoSpeechRecognized));
                 }
             };
 
@@ -133,7 +139,7 @@ namespace patter_pal.Logic
                 if (e.Reason == CancellationReason.Error)
                 {
                     _logger.LogError($"Speech recognition canceled: {e.Reason}, {e.ErrorDetails}");
-                    onError(e.ErrorDetails);
+                    onError(new ErrorResponse($"Speech recognition is unavailable. Please try again later.", ErrorResponse.ErrorCode.SpeechServiceError));
                 }
             };
         }

@@ -1,14 +1,18 @@
 ﻿namespace patter_pal.Models
 {
+    /// <summary>
+    /// User friendly error response for the client.
+    /// </summary>
     public class ErrorResponse
     {
-        // TODO integrate
         public enum ErrorCode
         {
-            OpenAiLimitReached = 3,
-            SpeechLimitReached = 4,
+            // Service errors may be caused by limitations or errors in the service we cannot control.
+            OpenAiServiceError = 3, 
+            SpeechServiceError = 4, 
             NoSpeechRecognized = 5,
-            NoAnswerFound = 6
+            NoAnswerFound = 6,
+            SynthesisServiceError = 7,
             // todo..
         }
 

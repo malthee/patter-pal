@@ -75,37 +75,15 @@ namespace patter_pal.Logic
 
                 using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 response.EnsureSuccessStatusCode();
-                var responseContentBuilder = new StringBuilder();
-                var sendTasks = new List<Task>();
+                var answerContentBuilder = new StringBuilder();
 
                 using var stream = await response.Content.ReadAsStreamAsync();
                 using var reader = new StreamReader(stream);
 
-                while (!reader.EndOfStream && ws.State == WebSocketState.Open)
-                {
-                    var line = await reader.ReadLineAsync();
-                    if (string.IsNullOrEmpty(line)) continue;
-                    if (line.Equals(OpenAiChatCompletionResponse.DONE_RESPONSE) == true) break;
-
-                    try
-                    {
-                        // Remove "data: '" from the start and "'" from the end in one statement, really weird of the OpenAi devs here
-                        string json = line[6..].Trim();
-                        var chunk = JsonSerializer.Deserialize<OpenAiChatCompletionResponse>(json);
-                        if (chunk == null || chunk.Content == null) throw new ApplicationException("Could not get content from OpenAi response.");
-
-                        var content = chunk.Content;
-                        sendTasks.Add(WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<string>(content, SocketResultType.PartialAnswer)))); // Pass intermediate results to client
-                        responseContentBuilder.Append(content);
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogWarning(e, "Error in deserializing OpenAi response stream");
-                    }
-                }
+                await BuildAnswerFromStream(ws, answerContentBuilder, reader);
 
                 // New id if not present
-                result = new ChatMessage(responseContentBuilder.ToString(), language, Guid.NewGuid(), conversationId ?? Guid.NewGuid());
+                result = new ChatMessage(answerContentBuilder.ToString(), language, Guid.NewGuid(), conversationId ?? Guid.NewGuid());
                 _logger.LogDebug($"Got full answer from OpenAI: {result.Text}");
                 // Todo also save response to database
                 // ...
@@ -114,15 +92,59 @@ namespace patter_pal.Logic
             }
             catch (HttpRequestException e)
             {
-                // Timeout etc
+                ErrorResponse? error = null;
                 _logger.LogWarning(e, $"HttpRequestException while sending to OpenAI: {e.StatusCode}: {e.Message}");
+                var statusCode = (int?)e.StatusCode;
+
+                // Check if status is 4xx then our ratelimit it at stake
+                if (statusCode != null && statusCode >= 400 && statusCode < 500)
+                {
+                    _logger.LogError("Got 4XX response from OpenAi, a limit might be reached.");
+                    error = new ErrorResponse("Response limit reached. Please try again later.", ErrorResponse.ErrorCode.OpenAiServiceError);
+                }
+                else error = new ErrorResponse("OpenAI is currently unavailable. Please try again later.", ErrorResponse.ErrorCode.OpenAiServiceError);
+
+                await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<ErrorResponse>(error, SocketResultType.Error)));
             }
             catch (Exception e)
             {
+                // Most likely timeout
                 _logger.LogError(e, "Other unhandeled error while sending to OpenAI");
+                var error = new ErrorResponse("OpenAI is taking to long to respond. Please try again later.", ErrorResponse.ErrorCode.OpenAiServiceError);
+                await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<ErrorResponse>(error, SocketResultType.Error)));
             }
 
             return result;
+        }
+
+        private async Task BuildAnswerFromStream(WebSocket ws, StringBuilder responseContentBuilder, StreamReader reader)
+        {
+            var sendTasks = new List<Task>();
+
+            while (!reader.EndOfStream && ws.State == WebSocketState.Open)
+            {
+                var line = await reader.ReadLineAsync();
+                if (string.IsNullOrEmpty(line)) continue;
+                if (line.Equals(OpenAiChatCompletionResponse.DONE_RESPONSE) == true) break;
+
+                try
+                {
+                    // Remove "data: '" from the start and "'" from the end in one statement, really weird of the OpenAi devs here
+                    string json = line[6..].Trim();
+                    var chunk = JsonSerializer.Deserialize<OpenAiChatCompletionResponse>(json);
+                    if (chunk == null || chunk.Content == null) throw new ApplicationException("Could not get content from OpenAi response.");
+
+                    var content = chunk.Content;
+                    sendTasks.Add(WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<string>(content, SocketResultType.PartialAnswer)))); // Pass intermediate results to client
+                    responseContentBuilder.Append(content);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogWarning(e, "Error in deserializing OpenAi response stream.");
+                }
+            }
+
+            await Task.WhenAll(sendTasks);
         }
 
         /// <summary>
@@ -150,11 +172,12 @@ namespace patter_pal.Logic
                     if (words.Length > MIN_WORDS_USER_INPUT)
                     {
                         // Remove last word
+                        _logger.LogDebug($"Reducing messages to token limit, removing last word: {words[^1]}");
                         messages.Last().Content = string.Join(" ", words.Take(words.Length - 1));
                     }
                     else if (messages.Count == 3)
                     {
-                        // Remove feedback prompt
+                        // Remove feedback metrics prompt
                         messages.RemoveAt(1);
                     }
                     else
