@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using patter_pal.Controllers;
 using patter_pal.Logic;
+using patter_pal.Util;
 
 /// <summary>
 /// Authentification endpoints (currently only through 3rd parties).
@@ -12,18 +13,20 @@ using patter_pal.Logic;
 public class AuthController : Controller
 {
     private readonly UserService _userService;
+    private readonly AppConfig _appConfig;
 
-    public AuthController(UserService userService)
+    public AuthController(UserService userService, AppConfig appConfig)
     {
         _userService = userService;
+        _appConfig = appConfig;
     }
 
     [HttpGet]
     public IActionResult ExternalLogin(string provider)
     {
         // Set the callback URL to the ExternalLoginCallback action
-        var redirectUrl = Url.Action(nameof(ExternalLoginCallback), "Auth");
-        var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
+        string? redirectUrl = Url.Action(nameof(ExternalLoginCallback), "Auth");
+        AuthenticationProperties properties = new() { RedirectUri = redirectUrl };
 
         // Challenge the external provider
         return Challenge(properties, provider);
@@ -66,12 +69,33 @@ public class AuthController : Controller
     }
 
     [HttpPost]
-    public IActionResult SpecialAccess()
+    public IActionResult SpecialAccess(string code)
     {
-        // TODO check if allowed and redirect
-        //return RedirectToAction("App", "Home");
+        if (IsValidSpecialCode(code))
+        {
+            // Code is valid, manually sign in the user
+            List<Claim> claims = new()
+            {
+                new(ClaimTypes.Email, code) // You can customize the claims as needed
+            };
 
-        TempData["Error"] = "Special Access Code Invalid";
-        return RedirectToAction("Index", "Home");
+            ClaimsIdentity identity = new(claims, "SpecialAccess");
+            ClaimsPrincipal principal = new(identity);
+
+            HttpContext.SignInAsync("Cookies", principal);
+
+            // Redirect to the appropriate page after successful login
+            return RedirectToAction("App", "Home");
+        }
+        else
+        {
+            // Code is invalid, handle the error (you may want to redirect to an error page)
+            return RedirectToAction("Index", "Home");
+        }
+    }
+
+    public bool IsValidSpecialCode(string code)
+    {
+        return _appConfig.ValidSpecialCodes.Split(";").Any(c => c == code);
     }
 }
