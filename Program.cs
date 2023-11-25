@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using patter_pal.dataservice.Azure;
+using patter_pal.dataservice.DataObjects;
 using patter_pal.Logic;
 using patter_pal.Logic.Cosmos;
 using patter_pal.Logic.Interfaces;
@@ -36,9 +38,17 @@ static void ConfigureServices(WebApplicationBuilder builder, AppConfig appConfig
     builder.Services.AddControllersWithViews();
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddSingleton(appConfig);
-    builder.Services.AddSingleton(sp => new CosmosService(appConfig.DbConnectionString, appConfig.CosmosDbDb1, appConfig.CosmosDbDb1C1, appConfig.CosmosDbDb1C1PK, appConfig.CosmosDbDb1C2, appConfig.CosmosDbDb1C2PK));
+
+    // Data services
+    builder.Services.AddSingleton(sp => new CosmosService(
+        sp.GetService<ILogger<CosmosServiceContainer<ConversationData>>>()!, 
+        sp.GetService<ILogger<CosmosServiceContainer<SpeechPronounciationResultData>>>()!,
+        appConfig.DbConnectionString, appConfig.CosmosDbDb1, appConfig.CosmosDbDb1C1, appConfig.CosmosDbDb1C1PK, appConfig.CosmosDbDb1C2, appConfig.CosmosDbDb1C2PK));
     builder.Services.AddScoped<IConversationService, ConversationService>();
-    builder.Services.AddScoped<UserService>();
+    builder.Services.AddScoped<IUserService, UserService>();
+    
+    // Logic services
+    builder.Services.AddScoped<AuthService>();
     builder.Services.AddSingleton<SpeechPronounciationService>();
     builder.Services.AddSingleton<OpenAiService>();
     builder.Services.AddSingleton<SpeechSynthesisService>();

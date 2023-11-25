@@ -21,17 +21,23 @@ namespace patter_pal.Controllers
         private readonly SpeechPronounciationService _speechPronounciationService;
         private readonly OpenAiService _openAiService;
         private readonly SpeechSynthesisService _speechSynthesisService;
-        private readonly UserService _userService;
+        private readonly AuthService _authService;
         private readonly CosmosService _cosmosService;
         private readonly IConversationService _conversationService;
 
-        public WebSocketController(ILogger<HomeController> logger, SpeechPronounciationService speechPronounciationService, OpenAiService openAiService, SpeechSynthesisService speechSynthesisService, UserService userService, CosmosService cosmosService, IConversationService conversationService)
+        public WebSocketController(ILogger<HomeController> logger, 
+            SpeechPronounciationService speechPronounciationService, 
+            OpenAiService openAiService, 
+            SpeechSynthesisService speechSynthesisService, 
+            AuthService authService, 
+            CosmosService cosmosService, 
+            IConversationService conversationService)
         {
             _logger = logger;
             _speechPronounciationService = speechPronounciationService;
             _openAiService = openAiService;
             _speechSynthesisService = speechSynthesisService;
-            _userService = userService;
+            _authService = authService;
             _cosmosService = cosmosService;
             _conversationService = conversationService;
         }
@@ -44,7 +50,7 @@ namespace patter_pal.Controllers
         /// <param name="conversationId">Id of conversation if this is adding to an existing conversation</param>
         public async Task StartConversation(string language, Guid? conversationId = null)
         {
-            string? userId = await _userService.GetUserId();
+            string? userId = await _authService.GetUserId();
             if (userId == null)
             {
                 _logger.LogWarning($"User not logged in");

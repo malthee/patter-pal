@@ -1,20 +1,27 @@
 ﻿using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Logging;
 using patter_pal.dataservice.DataObjects;
 using Container = Microsoft.Azure.Cosmos.Container;
 
 namespace patter_pal.dataservice.Azure
 {
+    /// <summary>
+    /// A wrapper around the CosmosClient to provide a typed interface to the Cosmos DB.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class CosmosServiceContainer<T>
         where T : ContainerItem
     {
+        private readonly ILogger<CosmosServiceContainer<T>> _logger;
         private readonly CosmosClient _cosmosClient;
-        
+
         public readonly string DatabaseName;
         public readonly string ContainerName;
         public readonly string PartitionKey;
 
-        public CosmosServiceContainer(CosmosClient cosmosClient, string databaseName, string containerName, string partitionKey)
+        public CosmosServiceContainer(ILogger<CosmosServiceContainer<T>> logger, CosmosClient cosmosClient, string databaseName, string containerName, string partitionKey)
         {
+            _logger = logger;
             _cosmosClient = cosmosClient;
             DatabaseName = databaseName;
             ContainerName = containerName;
@@ -32,7 +39,6 @@ namespace patter_pal.dataservice.Azure
             return _cosmosClient.GetContainer(DatabaseName, ContainerName);
         }
 
-        
         public async Task<bool> AddOrUpdateAsync(T data, Action<T, T> modificationFunc)
         {
             Container container = GetContainer();
@@ -57,17 +63,22 @@ namespace patter_pal.dataservice.Azure
             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 // If the item does not exist, create a new one
-                await container.CreateItemAsync(
-                    data,
-                    new PartitionKey(data.UserId));
-
-                return true;
+                try
+                {
+                    await container.CreateItemAsync(data, new PartitionKey(data.UserId));
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, $"Failed to Add in AddOrUpdateAsync ${data.Id}");
+                }
             }
-            catch (Exception)
+            catch (Exception e)
             {
-
-                return false;
+                _logger.LogError(e, $"Failed to Update in AddOrUpdateAsync ${data.Id}");
             }
+
+            return false;
         }
 
         public async Task<bool> DeleteAsync(T data)
@@ -84,9 +95,14 @@ namespace patter_pal.dataservice.Azure
             }
             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                // TODO: log
-                return false;
+                _logger.LogWarning(ex, $"Could not find ${data.Id} to delete");
             }
+            catch (Exception e)
+            {
+                _logger.LogError(e, $"Failed to DeleteAsync ${data.Id}");
+            }
+
+            return false;
         }
 
         public async Task<bool> DeletePartitionAsync(string partitionKey)
@@ -103,16 +119,21 @@ namespace patter_pal.dataservice.Azure
                 while (feedIterator.HasMoreResults)
                 {
                     FeedResponse<T> response = await feedIterator.ReadNextAsync();
-                    response.ToList().ForEach(async(i) => await container.DeleteItemAsync<T>(i.Id, new PartitionKey(partitionKey)));
+                    response.ToList().ForEach(async (i) => await container.DeleteItemAsync<T>(i.Id, new PartitionKey(partitionKey)));
                 }
 
                 return true;
             }
             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                // TODO: log
-                return false;
+                _logger.LogWarning(ex, $"Could not partition ${partitionKey} to delete");
             }
+            catch (Exception e)
+            {
+                _logger.LogError(e, $"Failed to DeletePartitionAsync ${partitionKey}");
+            }
+
+            return false;
         }
 
         public async Task<List<T>?> QueryAsync(string query, params string[] ps)
@@ -138,11 +159,12 @@ namespace patter_pal.dataservice.Azure
 
                 return res;
             }
-            catch (Exception)
+            catch (Exception e)
             {
-
-                return null;
+                _logger.LogError(e, $"Query threw exception ${query}");
             }
+
+            return null;
         }
     }
 }

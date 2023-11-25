@@ -5,19 +5,20 @@ using Microsoft.AspNetCore.Mvc;
 using patter_pal.Controllers;
 using patter_pal.Logic;
 using patter_pal.Util;
+using static patter_pal.Util.ControllerHelper;
 
 /// <summary>
-/// Authentification endpoints (currently only through 3rd parties).
+/// Authentication endpoints (currently only through 3rd parties and special access codes).
 /// </summary>
 [AllowAnonymous]
 public class AuthController : Controller
 {
-    private readonly UserService _userService;
+    private readonly AuthService _authService;
     private readonly AppConfig _appConfig;
 
-    public AuthController(UserService userService, AppConfig appConfig)
+    public AuthController(AuthService authService, AppConfig appConfig)
     {
-        _userService = userService;
+        _authService = authService;
         _appConfig = appConfig;
     }
 
@@ -25,7 +26,7 @@ public class AuthController : Controller
     public IActionResult ExternalLogin(string provider)
     {
         // Set the callback URL to the ExternalLoginCallback action
-        string? redirectUrl = Url.Action(nameof(ExternalLoginCallback), "Auth");
+        string? redirectUrl = Url.Action(nameof(ExternalLoginCallback));
         AuthenticationProperties properties = new() { RedirectUri = redirectUrl };
 
         // Challenge the external provider
@@ -39,9 +40,8 @@ public class AuthController : Controller
         var info = await HttpContext.AuthenticateAsync("Cookies");
         if (info == null)
         {
-            //TODO: handle error
-            //return RedirectToAction(nameof(Login));
-            return RedirectToAction("Index", "Home");
+            TempData["Error"] = "Unsuccessful login.";
+            return RedirectToAction(nameof(HomeController.Index), GetControllerName<HomeController>());
         }
 
         // Sign out of the external provider
@@ -57,15 +57,14 @@ public class AuthController : Controller
         // Sign out the user
         HttpContext.SignOutAsync();
 
-        // Redirect to the home page or any other page after logout
-        return RedirectToAction("Index", "Home");
+        return RedirectToAction(nameof(HomeController.Index), GetControllerName<HomeController>());
     }
 
     [HttpPost]
     public IActionResult DeleteEverything()
     {
         // TODO delete
-        return RedirectToAction("Index", "Home");
+        return RedirectToAction(nameof(HomeController.Index), GetControllerName<HomeController>());
     }
 
     [HttpPost]
@@ -90,6 +89,7 @@ public class AuthController : Controller
         else
         {
             // Code is invalid, handle the error (you may want to redirect to an error page)
+            TempData["Error"] = "Invalid access code";
             return RedirectToAction("Index", "Home");
         }
     }

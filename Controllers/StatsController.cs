@@ -15,19 +15,19 @@ namespace patter_pal.Controllers
     public class StatsController : ControllerBase
     {
         private readonly CosmosService _cosmosService;
-        private readonly UserService _userService;
+        private readonly AuthService _authService;
 
-        public StatsController(CosmosService cosmosService, UserService userService)
+        public StatsController(CosmosService cosmosService, AuthService authService)
         {
             _cosmosService = cosmosService;
-            _userService = userService;
+            _authService = authService;
         }
 
 
         [HttpGet("Data")]
         public async Task<ActionResult<SpeechPronounciationResultModel>> Data(string? language = null)
         {
-            string? userId = await _userService.GetUserId();
+            string? userId = await _authService.GetUserId();
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();

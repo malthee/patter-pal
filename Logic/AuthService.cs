@@ -1,7 +1,4 @@
 ﻿using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http;
-using patter_pal.dataservice.Azure;
-using patter_pal.dataservice.DataObjects;
 using System.Security.Claims;
 
 namespace patter_pal.Logic
@@ -9,11 +6,11 @@ namespace patter_pal.Logic
     /// <summary>
     /// Managing data of currently logged in user.
     /// </summary>
-    public class UserService
+    public class AuthService
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public UserService(IHttpContextAccessor httpContextAccessor)
+        public AuthService(IHttpContextAccessor httpContextAccessor)
         {
             this._httpContextAccessor = httpContextAccessor;
         }

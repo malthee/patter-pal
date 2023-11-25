@@ -11,13 +11,13 @@ namespace patter_pal.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly UserService _userService;
+        private readonly AuthService _authService;
         private readonly ILogger<HomeController> _logger;
 
-        public HomeController(ILogger<HomeController> logger, UserService userService)
+        public HomeController(ILogger<HomeController> logger, AuthService authService)
         {
             _logger = logger;
-            _userService = userService;
+            _authService = authService;
         }
 
         [Authorize(Policy = "LoggedInPolicy")]
@@ -30,7 +30,7 @@ namespace patter_pal.Controllers
         [Authorize(Policy = "LoggedInPolicy")]
         public async Task<IActionResult> Stats()
         {
-            bool loggedIn = await _userService.IsLoggedIn();
+            bool loggedIn = await _authService.IsLoggedIn();
             if (!loggedIn)
             {
                 return RedirectToAction(nameof(Index));
@@ -47,7 +47,7 @@ namespace patter_pal.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Index()
         {
-            bool loggedIn = await _userService.IsLoggedIn();
+            bool loggedIn = await _authService.IsLoggedIn();
             if (loggedIn)
             {
                 return RedirectToAction(nameof(App));
@@ -65,7 +65,7 @@ namespace patter_pal.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Privacy()
         {
-            ViewData["IsLoggedIn"] = await _userService.IsLoggedIn();
+            ViewData["IsLoggedIn"] = await _authService.IsLoggedIn();
             return View();
         }
 
