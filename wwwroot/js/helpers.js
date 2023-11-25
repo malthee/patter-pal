@@ -11,10 +11,16 @@ export function resolveHostURL(path) {
 }
 
 export function htmlEscape(str) {
+    if (str === null || str === undefined) {
+        return '';
+    }
+
     return str.toString()
         .replace(/&/g, '&amp;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;')
         .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
+        .replace(/>/g, '&gt;')
+        .replace(/`/g, '&#96;')
+        .replace(/\//g, '&#x2F;');
 }

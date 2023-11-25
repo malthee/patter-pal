@@ -4,6 +4,8 @@ using Microsoft.Extensions.Options;
 using patter_pal.dataservice.Azure;
 using patter_pal.dataservice.DataObjects;
 using patter_pal.Logic;
+using patter_pal.Logic.Cosmos;
+using patter_pal.Logic.Interfaces;
 using patter_pal.Util;
 
 var builder = WebApplication.CreateBuilder(args);

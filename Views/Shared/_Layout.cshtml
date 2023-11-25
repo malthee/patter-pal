@@ -12,6 +12,9 @@
     <link rel="manifest" href="~/site.webmanifest">
 </head>
 <body class="vh-100 d-flex flex-column">
+    <div id="toast-container" aria-live="polite" aria-atomic="true" class="position-fixed top-0 start-50 translate-middle-x p-3 z-index-3">
+        <!-- Toasts will go here -->
+    </div>
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()

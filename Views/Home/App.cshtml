@@ -92,6 +92,7 @@
         {
             @: "@enumName": @(Convert.ToInt32(Enum.Parse(typeof(SocketResultType), enumName))),
         }};
+        const BubbleEmojies = ["😀", "😁", "😃", "😄", "🙂", "🧐"];
 
         const cachedAudioUrls = new Map();
         let audioRecStreamer = null;
@@ -115,7 +116,7 @@
             micButton.disabled = socketConnecting || isResponding && !audioPlayer;
 
             // TODO remove
-            console.log(`socketOpen: ${socketOpen}, isRecording: ${isRecording}, isResponding: ${isResponding}, audioPlayer: ${audioPlayer}`);
+            console.log(`socketConnecting: ${socketConnecting}, socketOpen: ${socketOpen}, isRecording: ${isRecording}, isResponding: ${isResponding}, audioPlayer: ${audioPlayer}`);
 
             if (socketOpen) {
                 if (isRecording) {
@@ -150,11 +151,14 @@
 
         function destroyAudioPlayer() {
             if (!audioPlayer) return;
+            clearInterval(audioPlayer._emojiInterval); // Added manually to visualize speech
             audioPlayer.pause();
             audioPlayer.currentTime = 0;
             audioPlayer = null;
             updateConversationUi();
         }
+
+        // --- Speech Bubbles --- //
 
         function scrollTextBubbleContainer() {
             // Either top or bottom depending on flex-wrap
@@ -182,6 +186,12 @@
                 textElement.innerHTML = append ? textElement.innerHTML + text : text;
                 scrollTextBubbleContainer(); // Adjust scroll position when new text is present
             };
+        }
+
+        function updateBubbleEmoji(bubble) {
+            const emojiElement = bubble.querySelector('.speaker-img');
+            const randomEmoji = BubbleEmojies[Math.floor(Math.random() * BubbleEmojies.length)];
+            emojiElement.innerHTML = randomEmoji;
         }
 
         // --- Event Handlers --- //
@@ -215,10 +225,14 @@
                     updateConversationUi();
                     cachedAudioUrls.set(currentChatId, audioUrl);
 
+                    audioPlayer.onplay = () => {
+                        audioPlayer._emojiInterval = setInterval(() => updateBubbleEmoji(currentAnswerOutputBubble), 500);
+                    }
+
                     audioPlayer.play()
                         .catch(e => {
                             console.error('Error playing audio:', e);
-                            alert('Cannot play audio in your browser. Your browser might be updated or we are missing your permissions to play audio.');
+                            showToast('Cannot play audio in your browser.<br/>Your browser might need to be updated or you need to give us permissions to play audio.', 'warning');
                             destroyAudioPlayer();
                         });
 
@@ -231,7 +245,7 @@
                 const result = JSON.parse(message.data);
                 switch (result?.Type) {
                     case (SocketResultType.Error):
-                        if (result.Data.Message) alert(result.Data.Message); // Todo handling
+                        if (result.Data.Message) showToast(result.Data.Message, 'danger');
                         console.error(result.Data);
                         stopAudioStream(false);
                         destroySocket();
@@ -270,7 +284,9 @@
                 try {
                     await audioRecStreamer.startRecording();
                 } catch (error) {
-                    alert(`This application requires your microphone permission. Please enable it in the top of your browser.\nIf it still does not work, you might have to update your browser or try a different one.`);
+                    console.warn(error);
+                    showToast(`This application requires your microphone.<br/>To permit usage, look for the microphone icon in the browser bar.`,
+                        'warning');
                     stopAudioStream(false);
                     destroySocket();
                 }
@@ -284,6 +300,7 @@
             };
             socket.onerror = (event) => {
                 console.error(`WebSocket Error: ${event.reason}`);
+                showToast('Troubles with server communication occurred. Maybe refresh the page.', 'danger');
                 stopAudioStream(false);
                 destroySocket();
             };
