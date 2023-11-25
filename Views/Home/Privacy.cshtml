@@ -19,7 +19,7 @@
     <p><strong>b. Conversations and Chats:</strong> We record and store the details of your conversations and chats with PatterPal. This includes both your input and the responses from PatterPal. This is required so you can access past conversations anytime.</p>
     <p><strong>c. Pronunciation Analysis:</strong> When speaking with PatterPal, we collect and analyze data on your pronunciation accuracy and the mistakes made during spoken text exercises. This information is used to provide personalized feedback and improve your learning experience.</p>
 
-    <h2>3. How We Use Your Information</h2>
+    <h2>2. How We Use Your Information</h2>
     <p>
         The information we collect is used to:
         <ul>
@@ -40,7 +40,7 @@
     <h2>Deleting Your Data</h2>
     <p>If you are logged in your can delete your data anytime. Warning, this deletes all your data and is non-reversible and will log you out!</p>
 
-    @if (ViewData["IsLoggedIn"] as bool? == true)
+    @if ((bool?)ViewData["IsLoggedIn"] == true)
     {
         <!-- Trigger Button -->
         <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal">
@@ -69,10 +69,12 @@
         </div>
     }
 
-    <h2>Impressum</h2>
-    <p>
-        <strong>Project Owners:</strong> Stefan Weißensteiner & Marcel Salvenmoser<br />
-        <strong>University:</strong> University of Applied Sciences Upper Austria<br />
-        <strong>Address:</strong> Softwarepark 11
-    </p>
+    <div class="text-center mt-5">
+        <h2>Impressum</h2>
+        <p>
+            <strong>Project Owners:</strong> Stefan Weißensteiner & Marcel Salvenmoser<br />
+            <strong>University:</strong> University of Applied Sciences Upper Austria<br />
+            <strong>Address:</strong> Softwarepark 11
+        </p>
+    </div>
 </div>
