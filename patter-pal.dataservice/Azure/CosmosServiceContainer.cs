@@ -39,7 +39,7 @@ namespace patter_pal.dataservice.Azure
             return _cosmosClient.GetContainer(DatabaseName, ContainerName);
         }
 
-        public async Task<bool> AddOrUpdateAsync(T data, Action<T, T> modificationFunc)
+        public async Task<bool> AddOrUpdateAsync(T data, Action<T, T>? modificationFunc = null)
         {
             Container container = GetContainer();
 
@@ -51,7 +51,7 @@ namespace patter_pal.dataservice.Azure
                     new PartitionKey(data.UserId));
 
                 // If the item exists, update it
-                modificationFunc(existingItem.Resource, data);
+                modificationFunc?.Invoke(existingItem.Resource, data);
 
                 await container.ReplaceItemAsync(
                     existingItem.Resource,
@@ -136,7 +136,7 @@ namespace patter_pal.dataservice.Azure
             return false;
         }
 
-        public async Task<List<T>?> QueryAsync(string query, params string[] ps)
+        public async Task<List<T>?> QueryAsync(string query, params object[] ps)
         {
             Container container = GetContainer();
 

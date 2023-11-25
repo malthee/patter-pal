@@ -31,6 +31,7 @@ namespace patter_pal.Util
         public string CosmosDbDb1C2PK { get; set; } = "/UserId";
         // Seperated by ; these are 10-char codes in the fommat of abcde-abcde that allow "special login access"  
         public string ValidSpecialCodes { get; set; } = string.Empty;
+        public int PronounciationAnalyticsMaxWordCount { get; set; } = 10;
 
         // --- Transfer settings --- //
         public int HttpTimeout { get; set; } = 20; // Seconds

@@ -60,28 +60,32 @@ namespace patter_pal.dataservice.Azure
             return await _cosmosServiceContainerConversations.QueryAsync(query, userId);
         }
 
-        public async Task<List<SpeechPronounciationResultData>?> GetSpeechPronounciationResultDataAsync(string userId, string? language = null)
+        public async Task<List<SpeechPronounciationResultData>?> GetSpeechPronounciationResultDataAsync(string userId, string? language = null, DateTime? minTimestamp = null)
         {
-            if (language is null)
+            string query = "SELECT * FROM c2 WHERE c2.UserId = @p0";
+            var args = new List<object>() { userId };
+
+            if (language != null)
             {
-                string query = "SELECT * FROM c2 WHERE c2.UserId = @p0";
-                return await _cosmosServiceContainerSpeech.QueryAsync(query, userId);
+                query += " AND c2.Language = @p1";
+                args.Add(language);
             }
-            else
+
+            if (minTimestamp != null)
             {
-                string query = "SELECT * FROM c2 WHERE c2.UserId = @p0 AND c2.Language = @p1";
-                return await _cosmosServiceContainerSpeech.QueryAsync(query, userId, language);
+                query += " AND c2.Timestamp >= ";
+                query += "@p" + args.Count;
+                args.Add(minTimestamp);
             }
+
+            return await _cosmosServiceContainerSpeech.QueryAsync(query, args.ToArray());
         }
 
         public async Task<bool> AddSpeechPronounciationResultDataAsync(string userId, SpeechPronounciationResultData data)
         {
             data.Id = Guid.NewGuid().ToString();
             data.UserId = userId;
-            return await _cosmosServiceContainerSpeech.AddOrUpdateAsync(data, (db, arg) =>
-            {
-
-            });
+            return await _cosmosServiceContainerSpeech.AddOrUpdateAsync(data);
         }
 
         public async Task<bool> DeleteAllUserData(string userId)

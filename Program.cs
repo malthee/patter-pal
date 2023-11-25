@@ -46,6 +46,7 @@ static void ConfigureServices(WebApplicationBuilder builder, AppConfig appConfig
         appConfig.DbConnectionString, appConfig.CosmosDbDb1, appConfig.CosmosDbDb1C1, appConfig.CosmosDbDb1C1PK, appConfig.CosmosDbDb1C2, appConfig.CosmosDbDb1C2PK));
     builder.Services.AddScoped<IConversationService, ConversationService>();
     builder.Services.AddScoped<IUserService, UserService>();
+    builder.Services.AddScoped<IPronounciationAnalyticsService, PronounciationAnalyticsService>();
     
     // Logic services
     builder.Services.AddScoped<AuthService>();

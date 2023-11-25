@@ -12,7 +12,7 @@ namespace patter_pal.Logic
 
         public AuthService(IHttpContextAccessor httpContextAccessor)
         {
-            this._httpContextAccessor = httpContextAccessor;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<bool> IsLoggedIn() => !string.IsNullOrEmpty(await GetUserId());

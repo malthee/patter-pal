@@ -9,12 +9,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="docs\**" />
     <Compile Remove="patter-pal.dataservice\**" />
     <Compile Remove="patter-pal.domain\**" />
+    <Content Remove="docs\**" />
     <Content Remove="patter-pal.dataservice\**" />
     <Content Remove="patter-pal.domain\**" />
+    <EmbeddedResource Remove="docs\**" />
     <EmbeddedResource Remove="patter-pal.dataservice\**" />
     <EmbeddedResource Remove="patter-pal.domain\**" />
+    <None Remove="docs\**" />
     <None Remove="patter-pal.dataservice\**" />
     <None Remove="patter-pal.domain\**" />
   </ItemGroup>

@@ -1,12 +1,10 @@
-﻿using Newtonsoft.Json;
-using patter_pal.dataservice.DataObjects;
-
-namespace patter_pal.Models
+﻿namespace patter_pal.Models
 {
-    public class SpeechPronounciationResultModel
+    public class PronounciationAnalytics
     {
         public List<SpeechAssessmentData> SpeechAssessments { get; set; } = new();
         public List<WordStatistic>? BottomTenWords { get; set; }
+        // TODO more word analytics like mispronounced words, insertions, deletions, etc.
     }
 
     public class SpeechAssessmentData

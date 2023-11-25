@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using patter_pal.Logic;
 using patter_pal.Models;
 using System.Diagnostics;
-using System.Security.Claims;
 
 namespace patter_pal.Controllers
 {
@@ -21,9 +20,8 @@ namespace patter_pal.Controllers
         }
 
         [Authorize(Policy = "LoggedInPolicy")]
-        public async Task<IActionResult> App()
+        public IActionResult App()
         {
-            // TODO app with conversationid, get user id from claims etc.
             return View();
         }
 
@@ -36,11 +34,7 @@ namespace patter_pal.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            if (TempData["Error"] != null)
-            {
-                ViewData["Error"] = TempData["Error"];
-            }
-
+             ViewData["Error"] = TempData["Error"];
             return View();
         }
 
