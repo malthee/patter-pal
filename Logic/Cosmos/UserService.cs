@@ -17,6 +17,7 @@ namespace patter_pal.Logic.Cosmos
 
         public Task<bool> DeleteAllUserData(string userId)
         {
+            _logger.LogInformation($"Deleting all user data for user {userId}");
             return _cosmosService.DeleteAllUserData(userId);
         }
     }

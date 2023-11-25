@@ -16,6 +16,7 @@ namespace patter_pal.Logic
         }
 
         public async Task<bool> IsLoggedIn() => !string.IsNullOrEmpty(await GetUserId());
+
         public async Task<string?> GetUserId()
         {
             HttpContext? httpContext = _httpContextAccessor.HttpContext;
@@ -26,6 +27,17 @@ namespace patter_pal.Logic
 
             AuthenticateResult info = await httpContext.AuthenticateAsync("Cookies");
             return info.Principal?.FindFirstValue(ClaimTypes.Email);
+        }
+
+        public async Task Logout()
+        {
+            HttpContext? httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null)
+            {
+                return;
+            }
+
+            await httpContext.SignOutAsync("Cookies");
         }
     }
 }

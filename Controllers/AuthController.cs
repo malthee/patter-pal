@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using patter_pal.Controllers;
 using patter_pal.Logic;
+using patter_pal.Logic.Interfaces;
 using patter_pal.Util;
 using static patter_pal.Util.ControllerHelper;
 
@@ -14,11 +15,13 @@ using static patter_pal.Util.ControllerHelper;
 public class AuthController : Controller
 {
     private readonly AuthService _authService;
+    private readonly IUserService _userService;
     private readonly AppConfig _appConfig;
 
-    public AuthController(AuthService authService, AppConfig appConfig)
+    public AuthController(AuthService authService, IUserService userService, AppConfig appConfig)
     {
         _authService = authService;
+        _userService = userService;
         _appConfig = appConfig;
     }
 
@@ -45,25 +48,35 @@ public class AuthController : Controller
         }
 
         // Sign out of the external provider
-        await HttpContext.SignOutAsync("Cookies");
+        await _authService.Logout();
 
-        // Redirect to the appropriate page after successful login
-        return RedirectToAction("App", "Home");
+        return RedirectToAction(nameof(HomeController.App), GetControllerName<HomeController>());
     }
 
     [HttpPost]
-    public IActionResult Logout()
+    public async Task<IActionResult> Logout()
     {
         // Sign out the user
-        HttpContext.SignOutAsync();
+        await _authService.Logout();
 
         return RedirectToAction(nameof(HomeController.Index), GetControllerName<HomeController>());
     }
 
     [HttpPost]
-    public IActionResult DeleteEverything()
+    [Authorize(Policy = "LoggedInPolicy")]
+    public async Task<IActionResult> DeleteEverything()
     {
-        // TODO delete
+        string? userId = await _authService.GetUserId();
+        if (userId == null)
+        {
+            TempData["Error"] = "You are not logged in.";
+        }
+        else if (!await _userService.DeleteAllUserData(userId)) {
+            TempData["Error"] = "Could not delete data, try again later.";
+        }
+
+        TempData["Success"] = "Deleted your data.";
+        await _authService.Logout();
         return RedirectToAction(nameof(HomeController.Index), GetControllerName<HomeController>());
     }
 
@@ -83,18 +96,17 @@ public class AuthController : Controller
 
             HttpContext.SignInAsync("Cookies", principal);
 
-            // Redirect to the appropriate page after successful login
-            return RedirectToAction("App", "Home");
+            return RedirectToAction(nameof(HomeController.App), GetControllerName<HomeController>());
         }
         else
         {
             // Code is invalid, handle the error (you may want to redirect to an error page)
             TempData["Error"] = "Invalid access code";
-            return RedirectToAction("Index", "Home");
+            return RedirectToAction(nameof(HomeController.Index), GetControllerName<HomeController>());
         }
     }
 
-    public bool IsValidSpecialCode(string code)
+    private bool IsValidSpecialCode(string code)
     {
         return _appConfig.ValidSpecialCodes.Split(";").Any(c => c == code);
     }

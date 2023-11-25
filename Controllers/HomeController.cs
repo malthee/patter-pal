@@ -53,11 +53,9 @@ namespace patter_pal.Controllers
                 return RedirectToAction(nameof(App));
             }
 
-            if (TempData["Error"] != null)
-            {
-                ViewData["Error"] = TempData["Error"];
-            }
-
+            // Error and success set by other actions
+            ViewData["Error"] = TempData["Error"];
+            ViewData["Success"] = TempData["Success"];
             ViewData["IsLoggedIn"] = loggedIn;
             return View();
         }

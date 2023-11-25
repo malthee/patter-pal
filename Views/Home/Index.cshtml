@@ -33,10 +33,10 @@
         </div>
     </div>
     
-    @if (ViewData["Error"] != null)
+    @if (ViewData["Error"] != null || ViewData["Success"] != null)
     {
-        <div class="login-button mt-3 alert alert-danger alert-dismissible fade show" role="alert">
-            @ViewData["Error"]
+        <div class="login-button mt-3 alert alert-@(ViewData["Error"] == null ? "success" : "error") alert-dismissible fade show" role="alert">
+            @(ViewData["Error"] ?? ViewData["Success"])
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"/>
         </div>
     }
