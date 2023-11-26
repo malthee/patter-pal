@@ -1,14 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.CognitiveServices.Speech;
 using Microsoft.CognitiveServices.Speech.PronunciationAssessment;
-using patter_pal.dataservice.Azure;
-using patter_pal.dataservice.DataObjects;
+using patter_pal.domain.Data;
 using patter_pal.Logic;
 using patter_pal.Logic.Interfaces;
-using patter_pal.Models;
-using patter_pal.Util;
 using System.Net.WebSockets;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace patter_pal.Controllers

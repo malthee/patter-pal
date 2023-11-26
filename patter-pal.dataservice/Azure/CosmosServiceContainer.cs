@@ -1,6 +1,6 @@
 ﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
-using patter_pal.dataservice.DataObjects;
+using patter_pal.domain.Data;
 using Container = Microsoft.Azure.Cosmos.Container;
 
 namespace patter_pal.dataservice.Azure

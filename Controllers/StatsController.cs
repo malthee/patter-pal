@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using patter_pal.dataservice.Azure;
-using patter_pal.dataservice.DataObjects;
 using patter_pal.Logic;
 using patter_pal.Logic.Interfaces;
 using patter_pal.Models;

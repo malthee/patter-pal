@@ -1,7 +1,7 @@
 ﻿using Microsoft.CognitiveServices.Speech;
 using Microsoft.CognitiveServices.Speech.PronunciationAssessment;
 using patter_pal.Controllers;
-using patter_pal.dataservice.DataObjects;
+using patter_pal.domain.Data;
 using patter_pal.Logic.Interfaces;
 using patter_pal.Models;
 using patter_pal.Util;

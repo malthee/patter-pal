@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace patter_pal.dataservice.DataObjects
+namespace patter_pal.domain.Data
 {
     public interface ContainerItem
     {

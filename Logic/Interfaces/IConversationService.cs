@@ -1,4 +1,4 @@
-﻿using patter_pal.dataservice.DataObjects;
+﻿using patter_pal.domain.Data;
 
 namespace patter_pal.Logic.Interfaces
 {

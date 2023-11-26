@@ -1,4 +1,4 @@
-﻿namespace patter_pal.dataservice.DataObjects
+﻿namespace patter_pal.domain.Data
 {
     public class WordData
     {

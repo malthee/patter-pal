@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using patter_pal.dataservice.Azure;
-using patter_pal.dataservice.DataObjects;
+using patter_pal.domain.Data;
 using patter_pal.Logic;
 using patter_pal.Logic.Cosmos;
 using patter_pal.Logic.Interfaces;

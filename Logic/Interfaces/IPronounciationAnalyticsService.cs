@@ -1,5 +1,4 @@
 ﻿using Microsoft.CognitiveServices.Speech.PronunciationAssessment;
-using patter_pal.dataservice.DataObjects;
 using patter_pal.Models;
 
 namespace patter_pal.Logic.Interfaces
