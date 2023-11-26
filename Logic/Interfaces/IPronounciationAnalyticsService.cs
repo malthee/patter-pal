@@ -1,11 +1,18 @@
-﻿using patter_pal.dataservice.DataObjects;
+﻿using Microsoft.CognitiveServices.Speech.PronunciationAssessment;
+using patter_pal.dataservice.DataObjects;
 using patter_pal.Models;
 
 namespace patter_pal.Logic.Interfaces
 {
     public interface IPronounciationAnalyticsService
     {
-        Task<bool> AddSpeechPronounciationResultDataAsync(string userId, SpeechPronounciationResultData data);
+        /// <summary>
+        /// Creates a new SpeechPronounciationResultData from a PronunciationAssessmentResult 
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="pronounciationResult"></param>
+        /// <returns></returns>
+        Task<bool> AddSpeechPronounciationResultDataAsync(string userId, string language, PronunciationAssessmentResult pronounciationResult);
 
         Task<PronounciationAnalytics?> GetPronounciationAnalyticsAsync(
             string userId,

@@ -1,7 +1,8 @@
 ﻿using Microsoft.CognitiveServices.Speech;
 using Microsoft.CognitiveServices.Speech.PronunciationAssessment;
-using Microsoft.Extensions.Primitives;
 using patter_pal.Controllers;
+using patter_pal.dataservice.DataObjects;
+using patter_pal.Logic.Interfaces;
 using patter_pal.Models;
 using patter_pal.Util;
 using System.Net.Http.Headers;
@@ -21,42 +22,48 @@ namespace patter_pal.Logic
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly AppConfig _appConfig;
 
-        public OpenAiService(ILogger<HomeController> logger, AppConfig config, IHttpClientFactory httpClientFactory)
+        public OpenAiService(ILogger<HomeController> logger, IHttpClientFactory httpClientFactory, AppConfig appConfig)
         {
             _logger = logger;
-            _appConfig = config;
             _httpClientFactory = httpClientFactory;
+            _appConfig = appConfig;
         }
 
-        public async Task<ChatMessage?> StreamAndGenerateAnswer(WebSocket ws, SpeechRecognitionResult reconitionResult, string language, Guid? conversationId = null)
+        public async Task<ChatMessage?> StreamAndGenerateAnswer(WebSocket ws, SpeechRecognitionResult reconitionResult, ConversationData conversation, string language)
         {
-            _logger.LogDebug($"Generating Answer from WebSocket with language {language} {conversationId}");
+            _logger.LogDebug($"Generating Answer from WebSocket with language {language} {conversation.Id}");
             // Provide the language prompt, pronounciation assessment and the user input
             string languagePrompt = PromptForLanguage(_appConfig.OpenAiSystemHelperPrompt, language);
             var messages = new List<OpenAiMessage>() {
                 new OpenAiMessage { Role = OpenAiMessage.ROLE_SYSTEM, Content = languagePrompt },
                 new OpenAiMessage { Role = OpenAiMessage.ROLE_SYSTEM, Content = ExtractPronounciationAssesmentString(reconitionResult) },
-                new OpenAiMessage { Role = OpenAiMessage.ROLE_USER, Content = reconitionResult.Text }
+                new OpenAiMessage { Role = OpenAiMessage.ROLE_USER, Content = reconitionResult.Text } // TODO rm as in conversation already 
             };
 
-            // TODO add previous message history from message id when present
-            // ... messages.InsertRange(0, databasemessagesblahla)
+            // Add previous message history from conversationId when present
+            if (conversation.Data.Any())
+            {
+                messages.InsertRange(0, conversation.Data.Select(
+                    (chat) => new OpenAiMessage { Role = chat.IsUser ? OpenAiMessage.ROLE_USER : OpenAiMessage.ROLE_ASSISTANT, Content = chat.Text })
+                    );
+            }
 
             // Reduce messages to token limit if possible
             try { ReduceToTokenLimit(messages); }
-            catch (Exception)
+            catch (Exception e)
             {
-                _logger.LogWarning("Could not reduce messages to token limit, aborting");
+                _logger.LogWarning(e, "Could not reduce messages to token limit, aborting");
+                await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<ErrorResponse>(new ErrorResponse("Please open a new conversation. This conversation has reached its limit.", ErrorResponse.ErrorCode.OpenAiServiceError), SocketResultType.Error)));
                 return null;
             }
 
             // Performing the actual request
-            ChatMessage? result = await InnerStreamResult(ws, language, conversationId, messages);
+            ChatMessage? result = await InnerStreamResult(ws, language, conversation, messages);
             return result;
         }
 
         // Performs the HTTP request and streams the result to the client
-        private async Task<ChatMessage?> InnerStreamResult(WebSocket ws, string language, Guid? conversationId, List<OpenAiMessage> messages)
+        private async Task<ChatMessage?> InnerStreamResult(WebSocket ws, string language, ConversationData conversation, List<OpenAiMessage> messages)
         {
             using var client = _httpClientFactory.CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _appConfig.OpenAiKey);
@@ -83,10 +90,10 @@ namespace patter_pal.Logic
                 await BuildAnswerFromStream(ws, answerContentBuilder, reader);
 
                 // New id if not present
-                result = new ChatMessage(answerContentBuilder.ToString(), language, Guid.NewGuid(), conversationId ?? Guid.NewGuid());
+                // TODO replace
+                result = new ChatMessage(answerContentBuilder.ToString(), language, Guid.NewGuid(), Guid.NewGuid());
                 _logger.LogDebug($"Got full answer from OpenAI: {result.Text}");
-                // Todo also save response to database
-                // ...
+
                 // Send to user
                 await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<ChatMessage>(result, SocketResultType.AnswerResult)));
             }

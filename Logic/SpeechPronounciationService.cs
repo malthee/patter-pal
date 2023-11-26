@@ -3,12 +3,9 @@ using Microsoft.CognitiveServices.Speech.PronunciationAssessment;
 using Microsoft.CognitiveServices.Speech;
 using patter_pal.Util;
 using System.Net.WebSockets;
-using System.Text;
 using System.Text.Json;
 using patter_pal.Models;
 using static patter_pal.Models.SpeechPronounciationResult;
-using static System.Net.Mime.MediaTypeNames;
-using Microsoft.Azure.Cosmos.Serialization.HybridRow;
 
 namespace patter_pal.Logic
 {

@@ -13,6 +13,7 @@
             NoSpeechRecognized = 5,
             NoAnswerFound = 6,
             SynthesisServiceError = 7,
+            DatabaseError = 8,
             // todo..
         }
 

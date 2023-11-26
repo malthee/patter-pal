@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.CognitiveServices.Speech;
 using Microsoft.CognitiveServices.Speech.PronunciationAssessment;
 using patter_pal.dataservice.Azure;
 using patter_pal.dataservice.DataObjects;
@@ -22,15 +23,15 @@ namespace patter_pal.Controllers
         private readonly OpenAiService _openAiService;
         private readonly SpeechSynthesisService _speechSynthesisService;
         private readonly AuthService _authService;
-        private readonly CosmosService _cosmosService;
+        private readonly IPronounciationAnalyticsService _pronounciationAnalyticsService;
         private readonly IConversationService _conversationService;
 
-        public WebSocketController(ILogger<HomeController> logger, 
-            SpeechPronounciationService speechPronounciationService, 
-            OpenAiService openAiService, 
-            SpeechSynthesisService speechSynthesisService, 
-            AuthService authService, 
-            CosmosService cosmosService, 
+        public WebSocketController(ILogger<HomeController> logger,
+            SpeechPronounciationService speechPronounciationService,
+            OpenAiService openAiService,
+            SpeechSynthesisService speechSynthesisService,
+            AuthService authService,
+            IPronounciationAnalyticsService pronounciationAnalyticsService,
             IConversationService conversationService)
         {
             _logger = logger;
@@ -38,7 +39,7 @@ namespace patter_pal.Controllers
             _openAiService = openAiService;
             _speechSynthesisService = speechSynthesisService;
             _authService = authService;
-            _cosmosService = cosmosService;
+            _pronounciationAnalyticsService = pronounciationAnalyticsService;
             _conversationService = conversationService;
         }
 
@@ -48,7 +49,7 @@ namespace patter_pal.Controllers
         /// </summary>
         /// <param name="language">Language identifier</param>
         /// <param name="conversationId">Id of conversation if this is adding to an existing conversation</param>
-        public async Task StartConversation(string language, Guid? conversationId = null)
+        public async Task StartConversation(string language, string? conversationId = null)
         {
             string? userId = await _authService.GetUserId();
             if (userId == null)
@@ -84,59 +85,38 @@ namespace patter_pal.Controllers
                 webSocket.Abort();
                 return;
             }
-            /*
-            // add new conversation if conversationId was null
-            if (string.IsNullOrEmpty(conversationId))
-            {
-                ConversationData newConversation = new() { Title = $"New Conversation ({language})" };
-                bool addConversationResult = await _conversationService.AddConversationAsync(userId, newConversation);
-                if (!addConversationResult)
-                {
-                    _logger.LogWarning("Could not add conversation");
-                    webSocket.Abort();
-                    return;
-                }
-                conversationId = newConversation.Id;
-            }
 
-            bool addChatSuccess = await _conversationService.AddChatAsync(userId, conversationId, new ChatData(true, reconitionResult.Text, language));
-            if (!addChatSuccess)
+            // Manage persistent conversation
+            var conversation = conversationId != null ?
+                await _conversationService.GetConversationAndChatsAsync(userId, conversationId) :
+                // Create a new Conversation with the title being the first 10 words of the first chat
+                new ConversationData() { Title = string.Join(" ", reconitionResult.Text.Split(" ").Take(10)) };
+            if (conversation == null
+                || !await _conversationService.AddConversationAsync(userId, conversation)
+                || !await _conversationService.AddChatAsync(userId, conversation.Id, new ChatData(true, reconitionResult.Text, language))
+                || !await _pronounciationAnalyticsService.AddSpeechPronounciationResultDataAsync(userId, language, PronunciationAssessmentResult.FromResult(reconitionResult)))
             {
-                _logger.LogWarning("Could not add chat message");
+                //WebSocketHelper.SendTextWhenOpen(webSocket, TODO
+                _logger.LogError("Could not add Conversation or SpeechPronounciationResult to database.");
                 webSocket.Abort();
                 return;
             }
-            */
 
-            var pronounciationResult = PronunciationAssessmentResult.FromResult(reconitionResult);
-            var speechResultData = new SpeechPronounciationResultData
-            {
-                Language = language,
-                Timestamp = DateTime.UtcNow,
-                UserId = userId,
-                AccuracyScore = (decimal)pronounciationResult.AccuracyScore,
-                FluencyScore = (decimal)pronounciationResult.FluencyScore,
-                CompletenessScore = (decimal)pronounciationResult.CompletenessScore,
-                PronounciationScore = (decimal)pronounciationResult.PronunciationScore,
-                Words = new(pronounciationResult.Words.Select(w => new WordData() { AccuracyScore = (decimal)w.AccuracyScore, ErrorType = w.ErrorType, Text = w.Word }))
-
-            };
-            bool addSpeechResultSuccess = await _cosmosService.AddSpeechPronounciationResultDataAsync(userId, speechResultData);
-            if (!addSpeechResultSuccess)
-            {
-                _logger.LogWarning("Could not add speech result");
-                webSocket.Abort();
-                return;
-            }
+            // TODO check if conversation object is updated with added chat
 
             // OpenAi
             if (!ShouldContinueConversationFlow(webSocket)) return;
-            var conversationAnswer = await _openAiService.StreamAndGenerateAnswer(webSocket, reconitionResult, language, conversationId);
+            var conversationAnswer = await _openAiService.StreamAndGenerateAnswer(webSocket, reconitionResult, conversation, language);
             if (conversationAnswer == null)
             {
-                _logger.LogWarning("Returned null from OpenAiService, aborting WebSocket");;
+                _logger.LogWarning("Returned null from OpenAiService, aborting WebSocket"); ;
                 webSocket.Abort();
                 return;
+            }
+            // TODO help asdfasdf Add AI answer to database
+            if (!await _conversationService.AddChatAsync(userId, conversation.Id, new ChatData(false, conversationAnswer.Text, language)))
+            {
+                _logger.LogWarning($"Could not add to conversation ${conversationId} as ConversationService returned false. Will continue Websocket.");
             }
 
             // Synthesize answer

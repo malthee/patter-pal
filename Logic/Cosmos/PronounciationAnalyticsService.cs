@@ -1,4 +1,6 @@
-﻿using patter_pal.dataservice.Azure;
+﻿using Microsoft.CognitiveServices.Speech.PronunciationAssessment;
+using Microsoft.CognitiveServices.Speech;
+using patter_pal.dataservice.Azure;
 using patter_pal.dataservice.DataObjects;
 using patter_pal.Logic.Interfaces;
 using patter_pal.Models;
@@ -19,9 +21,21 @@ namespace patter_pal.Logic.Cosmos
             _appConfig = config;
         }
 
-        public Task<bool> AddSpeechPronounciationResultDataAsync(string userId, SpeechPronounciationResultData data)
+        public Task<bool> AddSpeechPronounciationResultDataAsync(string userId, string language, PronunciationAssessmentResult pronounciationResult)
         {
-            return _cosmosService.AddSpeechPronounciationResultDataAsync(userId, data);
+            var speechResultData = new SpeechPronounciationResultData
+            {
+                Language = language,
+                Timestamp = DateTime.UtcNow,
+                UserId = userId,
+                AccuracyScore = (decimal)pronounciationResult.AccuracyScore,
+                FluencyScore = (decimal)pronounciationResult.FluencyScore,
+                CompletenessScore = (decimal)pronounciationResult.CompletenessScore,
+                PronounciationScore = (decimal)pronounciationResult.PronunciationScore,
+                Words = new(pronounciationResult.Words.Select(w => new WordData() { AccuracyScore = (decimal)w.AccuracyScore, ErrorType = w.ErrorType, Text = w.Word }))
+            };
+
+            return _cosmosService.AddSpeechPronounciationResultDataAsync(userId, speechResultData);
         }
 
         public async Task<PronounciationAnalytics?> GetPronounciationAnalyticsAsync(string userId, string? language = null, int? maxDaysAgo = null)

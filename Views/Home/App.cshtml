@@ -262,7 +262,7 @@
                         setBubbleText(currentAnswerOutputBubble, true)(htmlEscape(result.Data)); // OpenAi streams with partial results, have to append
                         break;
                     case (SocketResultType.AnswerResult):
-                        currentChatId = result.Data.Id;
+                        currentChatId = result.Data.Id; // TODO check if numerical, reset etc.
                         setBubbleText(currentAnswerOutputBubble)(htmlEscape(result.Data.Text));
                         break;
                     default:
