@@ -5,6 +5,9 @@
         // -- Compile time app constants -- //
         public const string AppUrl = "https://patter-pal.azurewebsites.net";
         public const string ConversationWebSocket = "WebSocket/StartConversation";
+        public const string ConversationRestEndpoint = "Conversation";
+        public const string ChatRestEndpoint = "Conversation/Chat";
+        public const string StatsEndpoint = "Stats";
         // These properties are not required to be set in the environment variables
         public readonly string[] NonRequiredProperties = { nameof(ValidSpecialCodes) };
 

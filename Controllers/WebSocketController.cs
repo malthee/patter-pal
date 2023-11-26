@@ -12,7 +12,7 @@ using patter_pal.Util;
 using System.Net.WebSockets;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using static patter_pal.Models.PronounciationMessage;
+using static patter_pal.Models.PronounciationMessageModel;
 
 namespace patter_pal.Controllers
 {
@@ -149,7 +149,7 @@ namespace patter_pal.Controllers
             }
 
             // Send result to user
-            var result = new PronounciationMessage(chatRequest.Text,
+            var result = new PronounciationMessageModel(chatRequest.Text,
                 language,
                 chatRequest.Id,
                 conversation.Id,
@@ -159,7 +159,7 @@ namespace patter_pal.Controllers
                 pronounciation.PronunciationScore,
                 pronounciation.Words.Select(w => new Word(w.Word, w.AccuracyScore, w.ErrorType)).ToList()
             );
-            await WebSocketHelper.SendTextWhenOpen(webSocket, JsonSerializer.Serialize(new SocketResult<PronounciationMessage>(result, SocketResultType.SpeechResult)));
+            await WebSocketHelper.SendTextWhenOpen(webSocket, JsonSerializer.Serialize(new SocketResult<PronounciationMessageModel>(result, SocketResultType.SpeechResult)));
             return (conversation, reconitionResult);
         }
 
@@ -197,8 +197,8 @@ namespace patter_pal.Controllers
             }
 
             await WebSocketHelper.SendTextWhenOpen(webSocket,
-                JsonSerializer.Serialize(new SocketResult<ChatMessage>(
-                    new ChatMessage(chatAnswer.Text, chatAnswer.Language, chatAnswer.Id, conversation.Id), SocketResultType.AnswerResult))
+                JsonSerializer.Serialize(new SocketResult<ChatMessageModel>(
+                    new ChatMessageModel(chatAnswer.Text, chatAnswer.Language, chatAnswer.Id, conversation.Id), SocketResultType.AnswerResult))
                 );
             return conversationAnswer;
         }

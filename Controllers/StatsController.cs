@@ -23,21 +23,17 @@ namespace patter_pal.Controllers
         }
 
 
-        [HttpGet("Data")]
-        public async Task<ActionResult<PronounciationAnalytics>> Data(string? language = null, int? maxDaysAgo = null)
+        [HttpGet]
+        public async Task<ActionResult<PronounciationAnalyticsModel>> GetAnalytics(string? language = null, int? maxDaysAgo = null)
         {
             string userId = (await _authService.GetUserId())!;
-
             if (language is not null && language == "All")
             {
                 language = null;
             }
 
             var result = await _pronounciationService.GetPronounciationAnalyticsAsync(userId, language, maxDaysAgo);
-            if(result is null)
-            {
-                return NotFound();
-            }
+            if(result is null) return NotFound();
 
             return result;
         }

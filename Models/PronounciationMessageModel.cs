@@ -4,7 +4,7 @@ namespace patter_pal.Models
     /// <summary>
     /// A result of a speech pronounciation in form of a ChatMessage.
     /// </summary>
-    public class PronounciationMessage : ChatMessage
+    public class PronounciationMessage : ChatMessageModel
     {
         public class Word
         {
