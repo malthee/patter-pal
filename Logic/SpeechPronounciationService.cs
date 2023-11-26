@@ -5,6 +5,7 @@ using patter_pal.Util;
 using System.Net.WebSockets;
 using System.Text.Json;
 using patter_pal.Models;
+using patter_pal.domain.Config;
 using static patter_pal.Models.SpeechPronounciationResult;
 
 namespace patter_pal.Logic

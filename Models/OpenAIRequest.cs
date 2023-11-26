@@ -1,4 +1,4 @@
-﻿using patter_pal.Util;
+﻿using patter_pal.domain.Config;
 using System.Text.Json.Serialization;
 
 namespace patter_pal.Models

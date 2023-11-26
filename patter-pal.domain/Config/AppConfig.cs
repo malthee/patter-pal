@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace patter_pal.Util
+﻿namespace patter_pal.domain.Config
 {
     public class AppConfig
     {
@@ -24,20 +22,20 @@ namespace patter_pal.Util
         public string GoogleOAuthClientID { get; set; } = string.Empty;
         public string GoogleOAuthClientSecret { get; set; } = string.Empty;
         public string DbConnectionString { get; set; } = string.Empty;
-        public string CosmosDbDb1 { get; set; } = "db1";
-        public string CosmosDbDb1C1 { get; set; } = "c1";
-        public string CosmosDbDb1C1PK { get; set; } = "/UserId";
-        public string CosmosDbDb1C2 { get; set; } = "c2";
-        public string CosmosDbDb1C2PK { get; set; } = "/UserId";
-        // Seperated by ; these are 10-char codes in the fommat of abcde-abcde that allow "special login access"  
-        public string ValidSpecialCodes { get; set; } = string.Empty;
+        public string CosmosDbName { get; set; } = "db1";
+        public string CosmosDbConversationContainer { get; set; } = "c1";
+        public string CosmosDbConversationPk { get; set; } = "/UserId";
+        public string CosmosDbPronounciationResultContainer { get; set; } = "c2";
+        public string CosmodDbPronounciationResultPk { get; set; } = "/UserId";
+        /// <summary>
+        /// Seperated by ; these are 10-char codes in the fommat of abcde-abcde that allow "special login access"  
+        /// </summary>
+        public string ValidSpecialCodes { get; set; } = "while-devin";
         public int PronounciationAnalyticsMaxWordCount { get; set; } = 10;
 
         // --- Transfer settings --- //
         public int HttpTimeout { get; set; } = 20; // Seconds
         public int WebSocketKeepAlive { get; set; } = 1; // Minutes
-        // Seconds how long server waits for audio before closing, should be dependent on RecordingChunkTime as user only sends every x seconds
-        //public int AudioRecognitionTimeoutServer { get; set; } = RecordingChunkTimeMs / 1000 + 3; 
 
         // --- OpenAI API --- //
         public string OpenAiEndpoint { get; set; } = "https://api.openai.com/v1/chat/completions";

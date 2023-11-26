@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using patter_pal.Controllers;
+using patter_pal.domain.Config;
 using patter_pal.Logic;
 using patter_pal.Logic.Interfaces;
-using patter_pal.Util;
 using static patter_pal.Util.ControllerHelper;
 
 /// <summary>
@@ -81,33 +81,15 @@ public class AuthController : Controller
     }
 
     [HttpPost]
-    public IActionResult SpecialAccess(string code)
+    public async Task<IActionResult> SpecialAccess(string code)
     {
-        if (IsValidSpecialCode(code))
+        if (await _authService.TrySignInWithSpecialCode(code))
         {
-            // Code is valid, manually sign in the user
-            List<Claim> claims = new()
-            {
-                new(ClaimTypes.Email, code) // You can customize the claims as needed
-            };
-
-            ClaimsIdentity identity = new(claims, "SpecialAccess");
-            ClaimsPrincipal principal = new(identity);
-
-            HttpContext.SignInAsync("Cookies", principal);
-
             return RedirectToAction(nameof(HomeController.App), GetControllerName<HomeController>());
         }
-        else
-        {
-            // Code is invalid, handle the error (you may want to redirect to an error page)
-            TempData["Error"] = "Invalid access code";
-            return RedirectToAction(nameof(HomeController.Index), GetControllerName<HomeController>());
-        }
-    }
 
-    private bool IsValidSpecialCode(string code)
-    {
-        return _appConfig.ValidSpecialCodes.Split(";").Any(c => c == code);
+        // Code is invalid, handle the error (you may want to redirect to an error page)
+        TempData["Error"] = "Invalid access code";
+        return RedirectToAction(nameof(HomeController.Index), GetControllerName<HomeController>());
     }
 }

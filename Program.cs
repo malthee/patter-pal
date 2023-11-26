@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using patter_pal.dataservice.Azure;
+using patter_pal.domain.Config;
 using patter_pal.domain.Data;
 using patter_pal.Logic;
 using patter_pal.Logic.Cosmos;
 using patter_pal.Logic.Interfaces;
-using patter_pal.Util;
 
 static void ConfigureAuth(WebApplicationBuilder builder, AppConfig appConfig)
 {
@@ -40,10 +40,7 @@ static void ConfigureServices(WebApplicationBuilder builder, AppConfig appConfig
     builder.Services.AddSingleton(appConfig);
 
     // Data services
-    builder.Services.AddSingleton(sp => new CosmosService(
-        sp.GetService<ILogger<CosmosServiceContainer<ConversationData>>>()!, 
-        sp.GetService<ILogger<CosmosServiceContainer<SpeechPronounciationResultData>>>()!,
-        appConfig.DbConnectionString, appConfig.CosmosDbDb1, appConfig.CosmosDbDb1C1, appConfig.CosmosDbDb1C1PK, appConfig.CosmosDbDb1C2, appConfig.CosmosDbDb1C2PK));
+    builder.Services.AddSingleton<CosmosService>();
     builder.Services.AddScoped<IConversationService, ConversationService>();
     builder.Services.AddScoped<IUserService, UserService>();
     builder.Services.AddScoped<IPronounciationAnalyticsService, PronounciationAnalyticsService>();

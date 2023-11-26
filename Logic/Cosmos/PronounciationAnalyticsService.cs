@@ -1,9 +1,9 @@
 ﻿using Microsoft.CognitiveServices.Speech.PronunciationAssessment;
 using patter_pal.dataservice.Azure;
+using patter_pal.domain.Config;
 using patter_pal.domain.Data;
 using patter_pal.Logic.Interfaces;
 using patter_pal.Models;
-using patter_pal.Util;
 
 namespace patter_pal.Logic.Cosmos
 {

@@ -1,4 +1,5 @@
 ﻿using Microsoft.CognitiveServices.Speech;
+using patter_pal.domain.Config;
 using patter_pal.Models;
 using patter_pal.Util;
 using System.Net.WebSockets;

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
+using patter_pal.domain.Config;
 using patter_pal.domain.Data;
 
 namespace patter_pal.dataservice.Azure
@@ -9,14 +10,20 @@ namespace patter_pal.dataservice.Azure
         private readonly CosmosClient _cosmosClient;
         private readonly CosmosServiceContainer<ConversationData> _cosmosServiceContainerConversations;
         private readonly CosmosServiceContainer<SpeechPronounciationResultData> _cosmosServiceContainerSpeech;
+        private readonly string _convCN;
+        private readonly string _pronouncCN;
 
         public CosmosService(
             ILogger<CosmosServiceContainer<ConversationData>> loggerConversation, ILogger<CosmosServiceContainer<SpeechPronounciationResultData>> loggerSpeech,
-            string connectionString, string cosmosDbDb1, string cosmosDbDb1C1, string cosmosDbDb1C1Pk, string cosmosDbDb1C2, string cosmosDbDb1C2Pk)
+            AppConfig appConfig)
         {
-            _cosmosClient = new CosmosClient(connectionString);
-            _cosmosServiceContainerConversations = new CosmosServiceContainer<ConversationData>(loggerConversation, _cosmosClient, cosmosDbDb1, cosmosDbDb1C1, cosmosDbDb1C1Pk);
-            _cosmosServiceContainerSpeech = new CosmosServiceContainer<SpeechPronounciationResultData>(loggerSpeech, _cosmosClient, cosmosDbDb1, cosmosDbDb1C2, cosmosDbDb1C2Pk);
+            // If this app grows this should be split up into more DAOs
+            // These vars are safe as they come from env variables
+            _cosmosClient = new CosmosClient(appConfig.DbConnectionString);
+            _convCN = appConfig.CosmosDbConversationContainer;
+            _pronouncCN = appConfig.CosmosDbPronounciationResultContainer;
+            _cosmosServiceContainerConversations = new CosmosServiceContainer<ConversationData>(loggerConversation, _cosmosClient, appConfig.CosmosDbName, _convCN, appConfig.CosmosDbConversationPk);
+            _cosmosServiceContainerSpeech = new CosmosServiceContainer<SpeechPronounciationResultData>(loggerSpeech, _cosmosClient, appConfig.CosmosDbName, _pronouncCN, appConfig.CosmodDbPronounciationResultPk);
         }
 
         public async Task InitializeService()
@@ -27,7 +34,7 @@ namespace patter_pal.dataservice.Azure
 
         public async Task<ConversationData?> GetUserConversationAsync(string userId, string conversationId)
         {
-            string query = "SELECT * FROM c1 WHERE c1.id = @p0 and c1.UserId = @p1";
+            string query = $"SELECT * FROM {_convCN} WHERE {_convCN}.id = @p0 and {_convCN}.UserId = @p1";
             List<ConversationData>? res = await _cosmosServiceContainerConversations.QueryAsync(query, conversationId, userId);
             return res?.FirstOrDefault();
         }
@@ -56,24 +63,24 @@ namespace patter_pal.dataservice.Azure
 
         public async Task<List<ConversationData>?> GetUserConversationsShallowAsync(string userId)
         {
-            string query = "SELECT c1.id, c1.UserId, c1.Title FROM c1 WHERE c1.UserId = @p0";
+            string query = $"SELECT {_convCN}.id, {_convCN}.UserId, {_convCN}.Title FROM {_convCN} WHERE {_convCN}.UserId = @p0";
             return await _cosmosServiceContainerConversations.QueryAsync(query, userId);
         }
 
         public async Task<List<SpeechPronounciationResultData>?> GetSpeechPronounciationResultDataAsync(string userId, string? language = null, DateTime? minTimestamp = null)
         {
-            string query = "SELECT * FROM c2 WHERE c2.UserId = @p0";
+            string query = $"SELECT * FROM {_pronouncCN} WHERE {_pronouncCN}.UserId = @p0";
             var args = new List<object>() { userId };
 
             if (language != null)
             {
-                query += " AND c2.Language = @p1";
+                query += $" AND {_pronouncCN}.Language = @p1";
                 args.Add(language);
             }
 
             if (minTimestamp != null)
             {
-                query += " AND c2.Timestamp >= ";
+                query += $" AND {_pronouncCN}.Timestamp >= ";
                 query += "@p" + args.Count;
                 args.Add(minTimestamp);
             }
