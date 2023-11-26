@@ -20,9 +20,17 @@
 <div class="max-height-500 col-12 col-lg-3 collapse overflow-auto align-self-end align-self-lg-center" id="leftMenu">
     <div class="list-group">
         <!-- todo link to new chat, link asp other page -->
-        <a href="#" class="list-group-item list-group-item-action">➕ New Conversation</a>
-        <div class="list-group-item list-group-item-action active d-flex justify-content-between"><span>Testing </span><a href="#editdod" class="text-decoration-none">✏️</a></div>
-        <a href="#" class="list-group-item list-group-item-action">Arabic Testing خ</a>
+        <button type="button" id="newConversationButton" class="list-group-item list-group-item-action d-flex justify-content-between active">
+            <span>New Conversation</span>
+            <span>➕</span>
+        </button>
+        <div id="conversationTemplate" class="list-group-item list-group-item-action d-none d-flex justify-content-between">
+            <span></span>
+            <span class="conversation-actions d-none">
+                <button type="button" class="edit-conversation-button btn p-0">✏️</button>
+                <button type="button" class="delete-conversation-button btn p-0">🗑</button>
+            </span>
+        </div>
     </div>
 </div>
 
@@ -303,7 +311,7 @@
             socket.onerror = (event) => {
                 console.warn('WebSocket cancelled', event);
                 // This is a fallback error if socket is still active, other errors are handeled in messages
-                if(socket) showToast('Troubles with server communication occurred. Maybe refresh the page.', 'danger');
+                if (socket) showToast('Troubles with server communication occurred. Maybe refresh the page.', 'danger');
                 stopAudioStream(false);
                 destroySocket();
             };
