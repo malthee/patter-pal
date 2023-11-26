@@ -201,9 +201,11 @@
                 // Cancel recording
                 stopAudioStream();
                 updateConversationUi();
+                console.log('canceled');
                 return;
             }
 
+            console.log('started');
             // Cancel audio playback
             destroyAudioPlayer();
 
@@ -246,7 +248,7 @@
                 switch (result?.Type) {
                     case (SocketResultType.Error):
                         if (result.Data.Message) showToast(result.Data.Message, 'danger');
-                        console.error(result.Data);
+                        console.warn(result.Data);
                         stopAudioStream(false);
                         destroySocket();
                         break;
@@ -299,8 +301,9 @@
                 stopAudioStream(false);
             };
             socket.onerror = (event) => {
-                console.error(`WebSocket Error: ${event.reason}`);
-                showToast('Troubles with server communication occurred. Maybe refresh the page.', 'danger');
+                console.warn('WebSocket cancelled', event);
+                // This is a fallback error if socket is still active, other errors are handeled in messages
+                if(socket) showToast('Troubles with server communication occurred. Maybe refresh the page.', 'danger');
                 stopAudioStream(false);
                 destroySocket();
             };

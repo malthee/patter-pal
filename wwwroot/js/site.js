@@ -2,7 +2,7 @@
 
 /// Allows toasts to be shown anywhere in the app
 function showToast(message, type = 'info') {
-    const toastContainer = document.getElementById('toast-container');
+    const toastContainer = document.getElementById('toastContainer');
     const toastId = `toast-${Date.now()}`; // Unique ID for each toast
     const toastHtml = `
         <div id="${toastId}" class="toast hide align-items-center text-white bg-${type} border-0 mt-2" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">

@@ -110,3 +110,7 @@ body {
 .login-button {
     width: 300px;
 }
+
+#toastContainer {
+    z-index: 1100; /* Higher than other BS components */
+}

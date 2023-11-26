@@ -64,6 +64,8 @@ namespace patter_pal.Logic
                             {
                                 _logger.LogDebug("One byte received, manual end signal.");
                                 await recognizer.StopContinuousRecognitionAsync();
+                                // Set error in advance, only used if recognition gets no result
+                                error ??= new ErrorResponse("Recording aborted.", ErrorResponse.ErrorCode.SpeechServiceError);
                             }
                             else audioInputStream.Write(buffer.AsSpan(0, result.Count).ToArray());
                             break;
@@ -78,7 +80,10 @@ namespace patter_pal.Logic
                 }
 
                 // Error may happen after result, ignore it if a successful result happened before
-                if (recognitionResult == null && error != null) await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<ErrorResponse>(error, SocketResultType.Error)));
+                if (recognitionResult == null && error != null)
+                {
+                    await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<ErrorResponse>(error, SocketResultType.Error)));
+                }
             }
             catch (Exception e)
             {
