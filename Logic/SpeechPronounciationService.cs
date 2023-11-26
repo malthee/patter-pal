@@ -90,6 +90,7 @@ namespace patter_pal.Logic
                 _logger.LogError(e, "Error while reading from WebSocket");
             }
 
+            await recognizer.StopContinuousRecognitionAsync().ConfigureAwait(false);
             _logger.LogDebug("Done with Speech Recognition.");
             return recognitionResult;
         }
