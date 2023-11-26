@@ -13,7 +13,7 @@ namespace patter_pal.Logic.Interfaces
         /// <returns></returns>
         Task<bool> AddSpeechPronounciationResultDataAsync(string userId, string language, PronunciationAssessmentResult pronounciationResult);
 
-        Task<PronounciationAnalytics?> GetPronounciationAnalyticsAsync(
+        Task<PronounciationAnalyticsModel?> GetPronounciationAnalyticsAsync(
             string userId,
             string? language = null,
             int? maxDaysAgo = null);

@@ -6,7 +6,7 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using patter_pal.Models;
 using patter_pal.domain.Config;
-using static patter_pal.Models.PronounciationMessage;
+using static patter_pal.Models.PronounciationMessageModel;
 
 namespace patter_pal.Logic
 {

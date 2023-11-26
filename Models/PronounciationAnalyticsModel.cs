@@ -1,6 +1,6 @@
 ﻿namespace patter_pal.Models
 {
-    public class PronounciationAnalytics
+    public class PronounciationAnalyticsModel
     {
         public List<SpeechAssessmentData> SpeechAssessments { get; set; } = new();
         public List<WordStatistic>? BottomTenWords { get; set; }

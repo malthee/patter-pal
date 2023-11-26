@@ -3,9 +3,9 @@
     /// <summary>
     /// Model for conversation chat messages between user and the assistant.
     /// </summary>
-    public class ChatMessage
+    public class ChatMessageModel
     {
-        public ChatMessage(string text, string language, int id, string conversationId)
+        public ChatMessageModel(string text, string language, int id, string conversationId)
         {
             Text = text;
             Language = language;

@@ -37,7 +37,7 @@ namespace patter_pal.Logic.Cosmos
             return _cosmosService.AddSpeechPronounciationResultDataAsync(userId, speechResultData);
         }
 
-        public async Task<PronounciationAnalytics?> GetPronounciationAnalyticsAsync(string userId, string? language = null, int? maxDaysAgo = null)
+        public async Task<PronounciationAnalyticsModel?> GetPronounciationAnalyticsAsync(string userId, string? language = null, int? maxDaysAgo = null)
         {
             DateTime? daysAgoUtc = maxDaysAgo != null ? DateTime.UtcNow.AddDays(-maxDaysAgo.Value) : null;
             var pronounciationResults = await _cosmosService.GetSpeechPronounciationResultDataAsync(userId, language, daysAgoUtc);
@@ -59,7 +59,7 @@ namespace patter_pal.Logic.Cosmos
                     .Take(_appConfig.PronounciationAnalyticsMaxWordCount)
                     .ToList();
 
-            return new PronounciationAnalytics
+            return new PronounciationAnalyticsModel
             {
                 SpeechAssessments = pronounciationResults.Select(d => new SpeechAssessmentData
                 {
