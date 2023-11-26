@@ -1,7 +1,7 @@
 ﻿using patter_pal.domain.Config;
 using System.Text.Json.Serialization;
 
-namespace patter_pal.Models
+namespace patter_pal.Logic.Data
 {
     public class OpenAiChatRequest
     {

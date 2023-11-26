@@ -3,7 +3,7 @@ using Microsoft.CognitiveServices.Speech.PronunciationAssessment;
 using patter_pal.Controllers;
 using patter_pal.domain.Config;
 using patter_pal.domain.Data;
-using patter_pal.Logic.Interfaces;
+using patter_pal.Logic.Data;
 using patter_pal.Models;
 using patter_pal.Util;
 using System.Net.Http.Headers;
@@ -30,7 +30,7 @@ namespace patter_pal.Logic
             _appConfig = appConfig;
         }
 
-        public async Task<ChatMessage?> StreamAndGenerateAnswer(WebSocket ws, SpeechRecognitionResult reconitionResult, ConversationData conversation, string language)
+        public async Task<string?> StreamAndGenerateAnswer(WebSocket ws, SpeechRecognitionResult reconitionResult, ConversationData conversation, string language)
         {
             _logger.LogDebug($"Generating Answer from WebSocket with language {language} {conversation.Id}");
             // Provide the language prompt, pronounciation assessment and the user input
@@ -38,7 +38,7 @@ namespace patter_pal.Logic
             var messages = new List<OpenAiMessage>() {
                 new OpenAiMessage { Role = OpenAiMessage.ROLE_SYSTEM, Content = languagePrompt },
                 new OpenAiMessage { Role = OpenAiMessage.ROLE_SYSTEM, Content = ExtractPronounciationAssesmentString(reconitionResult) },
-                new OpenAiMessage { Role = OpenAiMessage.ROLE_USER, Content = reconitionResult.Text } // TODO rm as in conversation already 
+                new OpenAiMessage { Role = OpenAiMessage.ROLE_USER, Content = reconitionResult.Text } 
             };
 
             // Add previous message history from conversationId when present
@@ -59,19 +59,26 @@ namespace patter_pal.Logic
             }
 
             // Performing the actual request
-            ChatMessage? result = await InnerStreamResult(ws, language, conversation, messages);
+            string? result = await InnerStreamResult(ws, language, conversation, messages);
             return result;
         }
 
-        // Performs the HTTP request and streams the result to the client
-        private async Task<ChatMessage?> InnerStreamResult(WebSocket ws, string language, ConversationData conversation, List<OpenAiMessage> messages)
+        /// <summary>
+        /// Performs the HTTP request and streams the result to the client
+        /// </summary>
+        /// <param name="ws"></param>
+        /// <param name="language"></param>
+        /// <param name="conversation"></param>
+        /// <param name="messages"></param>
+        /// <returns></returns>
+        private async Task<string?> InnerStreamResult(WebSocket ws, string language, ConversationData conversation, List<OpenAiMessage> messages)
         {
             using var client = _httpClientFactory.CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _appConfig.OpenAiKey);
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             var chatRequest = new OpenAiChatRequest(_appConfig, messages);
 
-            ChatMessage? result = null;
+            string? result = null;
             try
             {
                 _logger.LogDebug($"Sending to OpenAI: {string.Join("\n", messages)}");
@@ -90,13 +97,8 @@ namespace patter_pal.Logic
 
                 await BuildAnswerFromStream(ws, answerContentBuilder, reader);
 
-                // New id if not present
-                // TODO replace
-                result = new ChatMessage(answerContentBuilder.ToString(), language, Guid.NewGuid(), Guid.NewGuid());
-                _logger.LogDebug($"Got full answer from OpenAI: {result.Text}");
-
-                // Send to user
-                await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<ChatMessage>(result, SocketResultType.AnswerResult)));
+                result = answerContentBuilder.ToString();
+                _logger.LogDebug($"Got full answer from OpenAI: {result}");
             }
             catch (HttpRequestException e)
             {
@@ -197,7 +199,12 @@ namespace patter_pal.Logic
             }
         }
 
-        // Fills the prompt with the specified language in the format ex. German (Austria)
+        /// <summary>
+        /// Fills the prompt with the specified language in the format ex. German (Austria)
+        /// </summary>
+        /// <param name="prompt"></param>
+        /// <param name="lang"></param>
+        /// <returns></returns>
         private string PromptForLanguage(string prompt, string lang)
         {
             LanguageConstants.Languages.TryGetValue(lang, out string? langDescriptor);

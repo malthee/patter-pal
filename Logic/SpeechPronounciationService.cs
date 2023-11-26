@@ -6,7 +6,7 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using patter_pal.Models;
 using patter_pal.domain.Config;
-using static patter_pal.Models.SpeechPronounciationResult;
+using static patter_pal.Models.PronounciationMessage;
 
 namespace patter_pal.Logic
 {
@@ -77,24 +77,8 @@ namespace patter_pal.Logic
                     }
                 }
 
-                if (recognitionResult != null)
-                {
-                    // Send result to user
-                    var pronounciation = PronunciationAssessmentResult.FromResult(recognitionResult);
-                    var result = new SpeechPronounciationResult(recognitionResult.Text,
-                        language,
-                        pronounciation.AccuracyScore,
-                        pronounciation.FluencyScore,
-                        pronounciation.CompletenessScore,
-                        pronounciation.PronunciationScore,
-                        pronounciation.Words.Select(w => new Word(w.Word, w.AccuracyScore, w.ErrorType)).ToList()
-                    );
-                    await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<SpeechPronounciationResult>(result, SocketResultType.SpeechResult)));
-                }
-                else // Error may happen after result, ignore it if a successful result happened before
-                {
-                    if (error != null) await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<ErrorResponse>(error, SocketResultType.Error)));
-                }
+                // Error may happen after result, ignore it if a successful result happened before
+                if (recognitionResult == null && error != null) await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<ErrorResponse>(error, SocketResultType.Error)));
             }
             catch (Exception e)
             {

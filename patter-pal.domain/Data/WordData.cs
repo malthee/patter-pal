@@ -4,6 +4,6 @@
     {
         public string Text { get; set; } = string.Empty;
         public decimal AccuracyScore { get; set; }
-        public string ErrorType { get; set; } = string.Empty;
+        public string ErrorType { get; set; } = string.Empty; // Either None, Omission, Insertion or Mispronounciation
     }
 }

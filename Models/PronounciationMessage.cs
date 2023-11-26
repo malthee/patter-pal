@@ -1,7 +1,10 @@
 ﻿
 namespace patter_pal.Models
 {
-    public class SpeechPronounciationResult
+    /// <summary>
+    /// A result of a speech pronounciation in form of a ChatMessage.
+    /// </summary>
+    public class PronounciationMessage : ChatMessage
     {
         public class Word
         {
@@ -14,10 +17,13 @@ namespace patter_pal.Models
 
             public string Text { get; set; }
             public double AccuracyScore { get; set; }
-            public string? ErrorType { get; set; }
+            public string? ErrorType { get; set; } // Either None, Omission, Insertion or Mispronounciation
         }
 
-        public SpeechPronounciationResult(string text, string language, double accuracyScore, double fluencyScore, double completenessScore, double pronunciationScore, List<Word> words)
+        public PronounciationMessage(string text, string language, int chatId, string conversationId,
+            double accuracyScore, double fluencyScore, double completenessScore, double pronunciationScore,
+            List<Word> words)
+        : base(text, language, chatId, conversationId)
         {
             Text = text;
             AccuracyScore = accuracyScore;
@@ -28,8 +34,6 @@ namespace patter_pal.Models
             Language = language;
         }
 
-        public string Text { get; set; }
-        public string Language { get; set; }
         public double AccuracyScore { get; set; }
         public double FluencyScore { get; set; }
         public double CompletenessScore { get; set; }

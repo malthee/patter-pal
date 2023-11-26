@@ -18,6 +18,13 @@ namespace patter_pal.Logic
             _appConfig = appConfig;
         }
 
+        /// <summary>
+        /// Synthesizes text to speech and sends it to the client over <see cref="WebSocket"/>
+        /// </summary>
+        /// <param name="ws"></param>
+        /// <param name="text"></param>
+        /// <param name="language"></param>
+        /// <returns></returns>
         public async Task SendSynthesizedText(WebSocket ws, string text, string language)
         {
             _logger.LogDebug($"Starting Speech-Synthesis with language {language} and voice {_appConfig.SpeechSpeakerVoice}");

@@ -9,6 +9,10 @@
         AnswerResult = 3,
     }
 
+    /// <summary>
+    /// Wrapper model for websocket communication
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class SocketResult<T>
     {
         public SocketResult(T data, SocketResultType type)

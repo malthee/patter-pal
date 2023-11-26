@@ -5,7 +5,7 @@
     /// </summary>
     public class ChatMessage
     {
-        public ChatMessage(string text, string language, Guid? id = null, Guid? conversationId = null)
+        public ChatMessage(string text, string language, int id, string conversationId)
         {
             Text = text;
             Language = language;
@@ -23,12 +23,12 @@
         /// <summary>
         /// Identifier of the message.
         /// </summary>
-        public Guid? Id { get; set; }
+        public int Id { get; set; }
 
         /// <summary>
         /// Identifier of the conversation.
         /// </summary>
-        public Guid? ConversationId { get; set; }
+        public string ConversationId { get; set; }
 
     }
 }
