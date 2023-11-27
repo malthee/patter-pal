@@ -5,12 +5,14 @@
     /// </summary>
     public class ChatMessageModel
     {
-        public ChatMessageModel(string text, string language, int id, string conversationId)
+        public ChatMessageModel(string text, string language, int id, string conversationId, bool isUser)
         {
             Text = text;
             Language = language;
             Id = id;
             ConversationId = conversationId;
+            IsUser = isUser;
+            IsUser = isUser;
         }
 
         public string Text { get; set; }
@@ -30,5 +32,6 @@
         /// </summary>
         public string ConversationId { get; set; }
 
+        public bool IsUser { get; set; }
     }
 }

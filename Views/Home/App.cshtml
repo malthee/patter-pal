@@ -5,10 +5,10 @@
     ViewData["Title"] = "Home Page";
 }
 
-<div class="fixed-top text-end mt-4 me-4">
-    <a href="#" title="Toggle History" class="text-decoration-none border-4 rounded-circle bg-light menu-button" data-bs-toggle="collapse" data-bs-target="#leftMenu" aria-expanded="false" aria-controls="leftMenu">📃</a>
-    <a asp-controller="Home" asp-action="Stats" title="Show Stats" class="text-decoration-none border-4 rounded-circle bg-light menu-button">📊</a> <!-- TODO stats -->
-    <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post" class="align-top d-inline-block">
+<div class="fixed-top pe-none text-end mt-4 me-4">
+    <a href="#" title="Toggle History" class="pe-auto text-decoration-none border-4 rounded-circle bg-light menu-button" data-bs-toggle="collapse" data-bs-target="#leftMenu" aria-expanded="false" aria-controls="leftMenu">📃</a>
+    <a asp-controller="Home" asp-action="Stats" title="Show Stats" class="pe-auto text-decoration-none border-4 rounded-circle bg-light menu-button">📊</a> <!-- TODO stats -->
+    <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post" class="pe-auto align-top d-inline-block">
         @Html.AntiForgeryToken()
         <button type="submit" title="Logout" class="btn btn-light m-0 p-0 text-decoration-none border-4 rounded-circle menu-button">🚪</button>
     </form>
@@ -19,17 +19,18 @@
 <!-- Left column for list menu -->
 <div class="max-height-500 col-12 col-lg-3 collapse overflow-auto align-self-end align-self-lg-center" id="leftMenu">
     <div class="list-group">
-        <!-- todo link to new chat, link asp other page -->
-        <button type="button" id="newConversationButton" class="list-group-item list-group-item-action d-flex justify-content-between active">
+        <button type="button" id="newConversationButton" title="Start new conversation" class="conversation-entry list-group-item list-group-item-action d-flex justify-content-between">
             <span>New Conversation</span>
             <span>➕</span>
         </button>
-        <div id="conversationTemplate" class="list-group-item list-group-item-action d-none d-flex justify-content-between">
-            <span></span>
-            <span class="conversation-actions d-none">
-                <button type="button" class="edit-conversation-button btn p-0">✏️</button>
-                <button type="button" class="delete-conversation-button btn p-0">🗑</button>
-            </span>
+        <div id="conversationContainer" class="list-group">
+            <div id="conversationTemplate" class="conversation-entry list-group-item list-group-item-action d-none d-flex justify-content-between">
+                <div class="conversation-title"></div>
+                <div class="conversation-actions d-none d-flex ps-3">
+                    <button type="button" title="Edit" class="edit-conversation-button btn p-0">✏️</button>
+                    <button type="button" title="Delete" class="delete-conversation-button btn p-0">🗑</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -53,28 +54,28 @@
 <!-- Right column for text bubbles -->
 <div id="textBubbleContainer" class="max-height-500 col-lg-5 d-flex align-self-start align-self-lg-center justify-content-center flex-wrap-reverse flex-lg-wrap overflow-auto">
     <!-- Bubble templates -->
-    <div id="leftBubbleTemplate" class="d-none d-flex w-100 align-items-center mb-3">
+    <div id="leftBubbleTemplate" class="chat-bubble d-none d-flex w-100 align-items-center mb-3">
         <span class="speaker-img left">😁</span>
         <div class="bg-primary text-white rounded-3 ms-2 p-2">
             <p class="mb-0 text-break bubble-text"></p>
         </div>
     </div>
-    <div id="rightBubbleTemplate" class="d-none d-flex w-100 align-items-center justify-content-end mb-3">
+    <div id="rightBubbleTemplate" class="chat-bubble d-none d-flex w-100 align-items-center justify-content-end mb-3">
         <div class="bg-light rounded-3 me-2 p-2">
             <p class="mb-0 text-break bubble-text"></p>
         </div>
         <span class="speaker-img right">😀</span>
     </div>
-    <!-- Only show when no convo TODO -->
-    <div class="d-flex w-100 align-items-center mb-3">
+    <!-- Only show when no convo -->
+    <div class="bubble-intro d-flex w-100 align-items-center mb-3">
         <span class="speaker-img left">😁</span>
         <div class="bg-primary text-white rounded-3 ms-2 p-2">
             <p class="mb-0 text-break bubble-text">Start talking with Patter Pal by pressing the 🎙 button. You can ask questions, talk about your day and switch language any time!</p>
         </div>
     </div>
-    <div class="d-flex w-100 align-items-center justify-content-end mb-3">
+    <div class="bubble-intro d-flex w-100 align-items-center justify-content-end mb-3">
         <div class="bg-light rounded-3 me-2 p-2">
-            <p class="mb-0 text-break bubble-text">Want to practice your language skills? Ask me about common topics like family, food, living and current events. I can also give you suggestions if you ask me.</p>
+            <p class="bubble-intro mb-0 text-break bubble-text">Want to practice your language skills? Ask me about common topics like family, food, living and current events. I can also give you suggestions if you ask me.</p>
         </div>
         <span class="speaker-img right">😀</span>
     </div>
@@ -82,8 +83,9 @@
 
 @section Scripts {
     <script type="module">
-        import { resolveHostWebSocketURL, resolveHostURL, htmlEscape } from '/js/helpers.js';
+        import { resolveHostWebSocketURL, resolveHostURL, htmlEscape, getQueryParameters, updateQueryParameters } from '/js/helpers.js';
         import { AudioRecognitionStreamer } from '/js/audio_recognition.js';
+        import * as conversationApi from '/js/conversation_api.js'
 
         const micButton = document.getElementById('micButton');
         const stateLabel = document.getElementById('stateLabel');
@@ -92,6 +94,8 @@
         const textBubbleContainer = document.getElementById('textBubbleContainer');
         const leftBubbleTemplate = document.getElementById('leftBubbleTemplate');
         const rightBubbleTemplate = document.getElementById('rightBubbleTemplate');
+        const conversationContainer = document.getElementById('conversationContainer');
+        const conversationTemplate = document.getElementById('conversationTemplate');
 
         // Enum for socket result types
         const SocketResultType = {
@@ -101,46 +105,110 @@
         }};
         const BubbleEmojies = ["😀", "😁", "😃", "😄", "🙂", "🧐"];
 
+        let currentConversationId = getQueryParameters().conversationId;
         const cachedAudioUrls = new Map();
         let audioRecStreamer = null;
         let audioPlayer = null;
         let socket = null;
         let currentChatId = null;
-        let currentConversationId = null;
         let currentSpeechOutputBubble = null;
         let currentAnswerOutputBubble = null;
+        let initialLoadDone = false; 
 
-        function updateConversationUi() {
-            const socketConnecting = socket?.readyState == WebSocket.CONNECTING;
-            const socketOpen = socket?.readyState == WebSocket.OPEN;
-            const isRecording = audioRecStreamer && socketOpen;
-            const isResponding = !audioRecStreamer && socketOpen;
+        // Load data initially todo select this initial one
+        updateConversationUi();
+        initLoadConversations().finally(updateConversationUi);
 
-            languageSelect.disabled = socketConnecting || socketOpen;
-            languageSelectContainer.classList.toggle('fade-out', languageSelect.disabled);
+        // --- Conversation and history --- //
 
-            micButton.classList.toggle('active', isRecording);
-            // Can cancel recording and audio, but not start new one when server is responding or socket is still connecting
-            micButton.disabled = socketConnecting || isResponding && !audioPlayer;
+        // Initially loads conversations and the history of the currently selected conversation
+        async function initLoadConversations() {
+            // New conversation button active when others are not
+            document.getElementById('newConversationButton').classList.toggle('active', !currentConversationId);
 
-            // TODO remove
-            console.log(`socketConnecting: ${socketConnecting}, socketOpen: ${socketOpen}, isRecording: ${isRecording}, isResponding: ${isResponding}, audioPlayer: ${audioPlayer}`);
+            try {
+                const conversations = await conversationApi.fetchConversations(resolveHostURL('@AppConfig.ConversationRestEndpoint'));
+                conversations.forEach(conversation => {
+                    // Active when matches the query parameter conversation id
+                    prependConversationEntry(conversation.id, conversation.title, conversation.id == currentConversationId);
+                });
 
-            if (socketOpen) {
-                if (isRecording) {
-                    stateLabel.innerHTML = "Listening...";
-                } else if (isResponding || audioPlayer) {
-                    stateLabel.innerHTML = "Responding...";
-                } else {
-                    stateLabel.innerHTML = "Analyzing...";
-                }
-            } else if (socketConnecting) {
-                stateLabel.innerHTML = "Connecting...";
+                await loadConversationHistory();
+            } catch (e) {
+                showToast(e.message, 'danger');
             }
-            else {
-                stateLabel.innerHTML = "Ready to start...";
+
+            initialLoadDone = true;
+        }
+
+        // Fetches history data or displays into messages
+        async function loadConversationHistory() {
+            // Stop recording, playing etc when loading new history
+            destroyAll();
+            const introBubbles = document.querySelectorAll('.bubble-intro');
+            const otherBubbles = document.querySelectorAll('.chat-bubble:not(#leftBubbleTemplate):not(#rightBubbleTemplate)');
+            otherBubbles.forEach(element => element.remove()); // Remove bubbles from other conversation
+
+            if (currentConversationId) {
+                // Hide intro bubbles in an existing conversation
+                introBubbles.forEach(element => element.classList.add('d-none'));
+
+                try {
+                    const chats = await conversationApi.fetchChatsByConversationId(resolveHostURL('@AppConfig.ChatRestEndpoint'), currentConversationId);
+
+                    // Create bubbles from api result
+                    chats.forEach(chat => {
+                        const bubble = createBubble(chat.isUser, chat.text);
+                        textBubbleContainer.appendChild(bubble);
+                    });
+                } catch (e) {
+                    showToast(e.message, 'danger');
+                }
+            } else { // Enable intro chat ui
+                introBubbles.forEach(element => element.classList.remove('d-none'));
             }
         }
+
+        // Sets the currently selected conversation and optionally loads history from db
+        async function setActiveConversation(loadHistory = true) {
+            if(this.dataset.conversationId == currentConversationId) return; // No need to reload already selected
+
+            const conversationElements = document.querySelectorAll('.conversation-entry');
+            conversationElements.forEach(element => {
+                // Set other elements inactive, remove buttons
+                element.classList.remove('active');
+                element.querySelector('.conversation-actions')?.classList?.add('d-none');;
+            });
+
+            // Show actions when there are any
+            this.querySelector('.conversation-actions')?.classList?.remove('d-none');
+            this.classList.add('active');
+
+            updateQueryParameters({ 'conversationId': this.dataset.conversationId })
+            currentConversationId = this.dataset.conversationId;
+
+            // Fetch history or display default messages on new convo
+            if (loadHistory) await loadConversationHistory(); 
+            scrollTextBubbleContainer();
+        }
+
+        function prependConversationEntry(id, title, active = false) {
+            const clone = conversationTemplate.cloneNode(true);
+            clone.removeAttribute('id');
+            clone.classList.remove('d-none');
+            clone.classList.toggle('active', active);
+            clone.dataset.conversationId = id;
+            clone.onclick = setActiveConversation;
+            const titleElement = clone.querySelector('.conversation-title');
+            const actionElement = clone
+            const editButton = clone.querySelector('.edit-conversation-button')
+            const deleteButton = clone.querySelector('.delete-conversation-button')
+            titleElement.innerHTML = title;
+            conversationContainer.prepend(clone);
+            return clone;
+        }
+
+        // --- Audio and Sockets --- //
 
         function stopAudioStream(graceful = true) {
             if (!graceful) audioRecStreamer?.abortRecording();
@@ -166,62 +234,11 @@
             updateConversationUi();
         }
 
-        // --- Speech Bubbles --- //
-
-        function scrollTextBubbleContainer() {
-            // Either top or bottom depending on flex-wrap
-            let flexWrapStyle = window.getComputedStyle(textBubbleContainer).flexWrap;
-
-            // scrollHeight is either negative or positive depending on flex-wrap
-            textBubbleContainer.scrollTo({ top: textBubbleContainer.scrollHeight * (flexWrapStyle === 'wrap' ? 1 : -1), behavior: 'smooth' });
-        }
-
-        function resetOutputBubbles() {
-            currentSpeechOutputBubble = leftBubbleTemplate.cloneNode(true);
-            currentAnswerOutputBubble = rightBubbleTemplate.cloneNode(true);
-            // Remove the 'id' attribute from the cloned elements
-            currentSpeechOutputBubble.removeAttribute('id');
-            currentAnswerOutputBubble.removeAttribute('id');
-
-            // Remove the 'd-none' class from the cloned elements
-            currentSpeechOutputBubble.classList.remove('d-none');
-            currentAnswerOutputBubble.classList.remove('d-none');
-        }
-
-        function setBubbleText(bubble, append = false) {
-            return (text) => {
-                const textElement = bubble.querySelector('.bubble-text');
-                textElement.innerHTML = append ? textElement.innerHTML + text : text;
-                scrollTextBubbleContainer(); // Adjust scroll position when new text is present
-            };
-        }
-
-        function updateBubbleEmoji(bubble) {
-            const emojiElement = bubble.querySelector('.speaker-img');
-            const randomEmoji = BubbleEmojies[Math.floor(Math.random() * BubbleEmojies.length)];
-            emojiElement.innerHTML = randomEmoji;
-        }
-
-        // --- Event Handlers --- //
-
-        micButton.onclick = () => {
-            if (audioRecStreamer || socket?.readyState == WebSocket.OPEN) {
-                // Cancel recording
-                stopAudioStream();
-                updateConversationUi();
-                console.log('canceled');
-                return;
-            }
-
-            console.log('started');
-            // Cancel audio playback
+        function destroyAll() {
+            stopAudioStream(false);
+            destroySocket();
             destroyAudioPlayer();
-
-            const connectionUrl = resolveHostWebSocketURL("@AppConfig.ConversationWebSocket" + "/" + languageSelect.value); // TODO optional guid existing chat
-            socket = new WebSocket(connectionUrl);
-            audioRecStreamer = new AudioRecognitionStreamer(socket, @AppConfig.RecordingBufferSize, @AppConfig.RecordingChunkTimeMs, @AppConfig.TargetSampleRate);
-            initSocket();
-        };
+        }
 
         function socketMessageHandler(message) {
             try {
@@ -233,7 +250,7 @@
 
                     audioPlayer = new Audio(audioUrl);
                     updateConversationUi();
-                    cachedAudioUrls.set(currentChatId, audioUrl);
+                    //cachedAudioUrls.set(currentChatId, audioUrl);
 
                     audioPlayer.onplay = () => {
                         audioPlayer._emojiInterval = setInterval(() => updateBubbleEmoji(currentAnswerOutputBubble), 500);
@@ -267,25 +284,126 @@
                     case (SocketResultType.SpeechResult):
                         stopAudioStream();
                         setBubbleText(currentSpeechOutputBubble)(htmlEscape(result.Data.Text));
+                        // TODO show mispronouncs
+                        currentConversationId = result.Data.ConversationId;
+                        // Select and add conversation if new
+                        if (getQueryParameters().conversationId != currentConversationId) {
+                            console.log('New conversation started.');
+                            const conversation = prependConversationEntry(currentConversationId, 'Just added', true);
+                            setActiveConversation.call(conversation, false); // Set active without loading history
+                        }
                         break;
                     case (SocketResultType.PartialAnswer):
                         if (currentAnswerOutputBubble.parentNode === null) textBubbleContainer.appendChild(currentAnswerOutputBubble);
                         setBubbleText(currentAnswerOutputBubble, true)(htmlEscape(result.Data)); // OpenAi streams with partial results, have to append
                         break;
                     case (SocketResultType.AnswerResult):
-                        currentChatId = result.Data.Id; // TODO check if numerical, reset etc.
                         setBubbleText(currentAnswerOutputBubble)(htmlEscape(result.Data.Text));
                         break;
                     default:
                         throw new Error(`Unknown socket result type: ${result.Type}`);
                 }
-
-                console.log(result); // TODO remove
             } catch (error) {
                 console.warn(`Unhandelable socket message: ${error}`)
                 console.warn(message);
             }
         }
+
+        function updateConversationUi() {
+            const socketConnecting = socket?.readyState == WebSocket.CONNECTING;
+            const socketOpen = socket?.readyState == WebSocket.OPEN;
+            const isRecording = audioRecStreamer && socketOpen;
+            const isResponding = !audioRecStreamer && socketOpen;
+
+            languageSelect.disabled = socketConnecting || socketOpen;
+            languageSelectContainer.classList.toggle('fade-out', languageSelect.disabled);
+
+            micButton.classList.toggle('active', isRecording);
+            // Can cancel recording and audio, but not start new one when server is responding or socket is still connecting
+            micButton.disabled = socketConnecting || isResponding && !audioPlayer || !initialLoadDone;
+
+            if (socketOpen) {
+                if (isRecording) {
+                    stateLabel.innerHTML = "Listening...";
+                } else if (isResponding || audioPlayer) {
+                    stateLabel.innerHTML = "Responding...";
+                } else {
+                    stateLabel.innerHTML = "Analyzing...";
+                }
+            } else if (socketConnecting) {
+                stateLabel.innerHTML = "Connecting...";
+            }
+            else {
+                stateLabel.innerHTML = "Ready to start...";
+            }
+        }
+
+        // --- Speech Bubbles --- //
+
+        function scrollTextBubbleContainer() {
+            // Either top or bottom depending on flex-wrap
+            let flexWrapStyle = window.getComputedStyle(textBubbleContainer).flexWrap;
+
+            // scrollHeight is either negative or positive depending on flex-wrap
+            textBubbleContainer.scrollTo({ top: textBubbleContainer.scrollHeight * (flexWrapStyle === 'wrap' ? 1 : -1), behavior: 'smooth' });
+        }
+
+        function createBubble(left = false, text = null) {
+            const bubble = left ? leftBubbleTemplate.cloneNode(true) : rightBubbleTemplate.cloneNode(true);
+            bubble.removeAttribute('id');
+            bubble.classList.remove('d-none');
+            if (text) setBubbleText(bubble)(text);
+            return bubble;
+        }
+
+        function resetOutputBubbles() {
+            currentSpeechOutputBubble = createBubble(true);
+            currentAnswerOutputBubble = createBubble(false);
+        }
+
+        function setBubbleText(bubble, append = false) {
+            return (text) => {
+                const textElement = bubble.querySelector('.bubble-text');
+                textElement.innerHTML = append ? textElement.innerHTML + text : text;
+                scrollTextBubbleContainer(); // Adjust scroll position when new text is present
+            };
+        }
+
+        function updateBubbleEmoji(bubble) {
+            const emojiElement = bubble.querySelector('.speaker-img');
+            const randomEmoji = BubbleEmojies[Math.floor(Math.random() * BubbleEmojies.length)];
+            emojiElement.innerHTML = randomEmoji;
+        }
+
+        // --- Event Handlers --- //
+
+        micButton.onclick = () => {
+            if (audioRecStreamer || socket?.readyState == WebSocket.OPEN) {
+                // Cancel recording
+                stopAudioStream();
+                updateConversationUi();
+                return;
+            }
+
+            // Cancel audio playback
+            destroyAudioPlayer();
+
+            let connectionUrl = resolveHostWebSocketURL("@AppConfig.ConversationWebSocket" + "/" + languageSelect.value); // add /currentConversationId when not null
+            if (currentConversationId) connectionUrl += '/' + currentConversationId;
+            socket = new WebSocket(connectionUrl);
+            audioRecStreamer = new AudioRecognitionStreamer(socket, @AppConfig.RecordingBufferSize, @AppConfig.RecordingChunkTimeMs, @AppConfig.TargetSampleRate);
+            initSocket();
+        };
+
+        // Special conversation-entry handling as this is not in the container
+        document.getElementById('newConversationButton').onclick = setActiveConversation;
+
+        // Navigating back should reload the conversations
+        window.addEventListener('popstate', () => {
+            initialLoadDone = false;
+            currentConversationId = getQueryParameters().conversationId;
+            initLoadConversations();
+        });
 
         function initSocket() {
             socket.onmessage = socketMessageHandler;

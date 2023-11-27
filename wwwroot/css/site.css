@@ -114,3 +114,7 @@ body {
 #toastContainer {
     z-index: 1100; /* Higher than other BS components */
 }
+
+.conversation-entry{
+    cursor: pointer;
+}

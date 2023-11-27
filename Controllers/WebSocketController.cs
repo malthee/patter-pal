@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Cosmos;
-using Microsoft.Azure.Cosmos.Serialization.HybridRow;
 using Microsoft.CognitiveServices.Speech;
 using Microsoft.CognitiveServices.Speech.PronunciationAssessment;
-using Microsoft.CognitiveServices.Speech.Transcription;
 using patter_pal.domain.Data;
 using patter_pal.Logic;
 using patter_pal.Logic.Interfaces;
@@ -60,7 +57,7 @@ namespace patter_pal.Controllers
             if (!CheckForValidRequest(userId, language)) return;
 
             using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
-            _logger.LogDebug("WebSocket started");
+            _logger.LogDebug($"WebSocket started with language: {language}, conversationId: {conversationId}");
 
             // Azure Speech
             if (!ShouldContinueConversationFlow(webSocket)) return;
@@ -136,8 +133,9 @@ namespace patter_pal.Controllers
             var chatRequest = new ChatData(true, reconitionResult.Text, language);
             var pronounciation = PronunciationAssessmentResult.FromResult(reconitionResult);
             if (conversation == null
-                || !await _conversationService.AddConversationAsync(userId, conversation)
-                || !await _conversationService.AddChatAsync(userId, conversation.Id, chatRequest)
+                // Add a new conversation if no conversationId was provided
+                || (initialConversationId == null && !await _conversationService.AddConversationAsync(userId, conversation))
+                || !await _conversationService.AddChatAsync(userId, conversation.Id!, chatRequest)
                 || !await _pronounciationAnalyticsService.AddSpeechPronounciationResultDataAsync(userId, language, pronounciation))
             {
                 await WebSocketHelper.SendTextWhenOpen(webSocket, JsonSerializer.Serialize(
@@ -152,7 +150,7 @@ namespace patter_pal.Controllers
             var result = new PronounciationMessageModel(chatRequest.Text,
                 language,
                 chatRequest.Id,
-                conversation.Id,
+                conversation.Id!,
                 pronounciation.AccuracyScore,
                 pronounciation.FluencyScore,
                 pronounciation.CompletenessScore,
@@ -198,7 +196,7 @@ namespace patter_pal.Controllers
 
             await WebSocketHelper.SendTextWhenOpen(webSocket,
                 JsonSerializer.Serialize(new SocketResult<ChatMessageModel>(
-                    new ChatMessageModel(chatAnswer.Text, chatAnswer.Language, chatAnswer.Id, conversation.Id), SocketResultType.AnswerResult))
+                    new ChatMessageModel(chatAnswer.Text, chatAnswer.Language, chatAnswer.Id, conversation.Id, false), SocketResultType.AnswerResult))
                 );
             return conversationAnswer;
         }

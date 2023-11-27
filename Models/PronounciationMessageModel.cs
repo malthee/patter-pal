@@ -23,7 +23,7 @@ namespace patter_pal.Models
         public PronounciationMessageModel(string text, string language, int chatId, string conversationId,
             double accuracyScore, double fluencyScore, double completenessScore, double pronunciationScore,
             List<Word> words)
-        : base(text, language, chatId, conversationId)
+        : base(text, language, chatId, conversationId, true)
         {
             Text = text;
             AccuracyScore = accuracyScore;

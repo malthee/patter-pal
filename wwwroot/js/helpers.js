@@ -25,7 +25,13 @@ export function updateQueryParameters(newParams) {
 
     // Update existing parameters or add new ones
     for (const key in newParams) {
-        searchParams.set(key, newParams[key]);
+        if (!newParams[key]) {
+            // If the value is null, remove the parameter
+            searchParams.delete(key);
+        } else {
+            // Otherwise, set/update the parameter
+            searchParams.set(key, newParams[key]);
+        }
     }
 
     // Construct the new URL with updated query parameters

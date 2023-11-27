@@ -33,7 +33,7 @@
         /// <summary>
         /// Seperated by ; these are 10-char codes in the fommat of abcde-abcde that allow "special login access"  
         /// </summary>
-        public string ValidSpecialCodes { get; set; } = "while-devin";
+        public string ValidSpecialCodes { get; set; } = "while-devin;remov-iprod";
         public int PronounciationAnalyticsMaxWordCount { get; set; } = 10;
 
         // --- Transfer settings --- //

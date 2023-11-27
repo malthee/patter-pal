@@ -43,7 +43,7 @@ namespace patter_pal.Controllers
             var result = await _conversationService.GetConversationAndChatsAsync(userId, conversationId);
             if (result == null) return NotFound();
 
-            return result.Data.Select(c => new ChatMessageModel(c.Text, c.Language, c.Id, conversationId)).ToList();
+            return result.Data.Select(c => new ChatMessageModel(c.Text, c.Language, c.Id, conversationId, c.IsUser)).ToList();
         }
 
         [HttpPut]
