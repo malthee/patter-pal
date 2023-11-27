@@ -20,3 +20,8 @@ function showToast(message, type = 'info') {
     const toast = new bootstrap.Toast(document.getElementById(toastId));
     toast.show();
 }
+
+// Enable tooltips everywhere
+[].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).forEach((tooltipTriggerEl) => {
+    new bootstrap.Tooltip(tooltipTriggerEl)
+});
