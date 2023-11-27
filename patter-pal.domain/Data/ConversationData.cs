@@ -1,16 +1,9 @@
 ﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace patter_pal.dataservice.DataObjects
+namespace patter_pal.domain.Data
 {
     public class ConversationData : ContainerItem
     {
-
         [JsonProperty(PropertyName = "id")]
         public string Id { get; set; } = string.Empty;
         public string UserId { get; set; } = string.Empty;
@@ -18,11 +11,6 @@ namespace patter_pal.dataservice.DataObjects
 
         public List<ChatData> Data { get; set; } = new();
 
-        public ConversationData()
-        {
-            
-        }
-        
         public static ConversationData Create(string userId, string title)
         {
             return new ConversationData
@@ -38,9 +26,5 @@ namespace patter_pal.dataservice.DataObjects
             chat.Id = Data.Count;
             Data.Add(chat);
         }
-
-
-
-        //TODO: add props
     }
 }

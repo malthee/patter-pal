@@ -3,20 +3,24 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using patter_pal.Controllers;
+using patter_pal.domain.Config;
 using patter_pal.Logic;
-using patter_pal.Util;
+using patter_pal.Logic.Interfaces;
+using static patter_pal.Util.ControllerHelper;
 
 /// <summary>
-/// Authentification endpoints (currently only through 3rd parties).
+/// Authentication endpoints (currently only through 3rd parties and special access codes).
 /// </summary>
 [AllowAnonymous]
 public class AuthController : Controller
 {
-    private readonly UserService _userService;
+    private readonly AuthService _authService;
+    private readonly IUserService _userService;
     private readonly AppConfig _appConfig;
 
-    public AuthController(UserService userService, AppConfig appConfig)
+    public AuthController(AuthService authService, IUserService userService, AppConfig appConfig)
     {
+        _authService = authService;
         _userService = userService;
         _appConfig = appConfig;
     }
@@ -25,7 +29,7 @@ public class AuthController : Controller
     public IActionResult ExternalLogin(string provider)
     {
         // Set the callback URL to the ExternalLoginCallback action
-        string? redirectUrl = Url.Action(nameof(ExternalLoginCallback), "Auth");
+        string? redirectUrl = Url.Action(nameof(ExternalLoginCallback));
         AuthenticationProperties properties = new() { RedirectUri = redirectUrl };
 
         // Challenge the external provider
@@ -39,63 +43,53 @@ public class AuthController : Controller
         var info = await HttpContext.AuthenticateAsync("Cookies");
         if (info == null)
         {
-            //TODO: handle error
-            //return RedirectToAction(nameof(Login));
-            return RedirectToAction("Index", "Home");
+            TempData["Error"] = "Unsuccessful login.";
+            return RedirectToAction(nameof(HomeController.Index), GetControllerName<HomeController>());
         }
 
         // Sign out of the external provider
-        await HttpContext.SignOutAsync("Cookies");
+        await _authService.Logout();
 
-        // Redirect to the appropriate page after successful login
-        return RedirectToAction("App", "Home");
+        return RedirectToAction(nameof(HomeController.App), GetControllerName<HomeController>());
     }
 
     [HttpPost]
-    public IActionResult Logout()
+    public async Task<IActionResult> Logout()
     {
         // Sign out the user
-        HttpContext.SignOutAsync();
+        await _authService.Logout();
 
-        // Redirect to the home page or any other page after logout
-        return RedirectToAction("Index", "Home");
+        return RedirectToAction(nameof(HomeController.Index), GetControllerName<HomeController>());
     }
 
     [HttpPost]
-    public IActionResult DeleteEverything()
+    [Authorize(Policy = "LoggedInPolicy")]
+    public async Task<IActionResult> DeleteEverything()
     {
-        // TODO delete
-        return RedirectToAction("Index", "Home");
+        string? userId = await _authService.GetUserId();
+        if (userId == null)
+        {
+            TempData["Error"] = "You are not logged in.";
+        }
+        else if (!await _userService.DeleteAllUserData(userId)) {
+            TempData["Error"] = "Could not delete data, try again later.";
+        }
+
+        TempData["Success"] = "Deleted your data.";
+        await _authService.Logout();
+        return RedirectToAction(nameof(HomeController.Index), GetControllerName<HomeController>());
     }
 
     [HttpPost]
-    public IActionResult SpecialAccess(string code)
+    public async Task<IActionResult> SpecialAccess(string code)
     {
-        if (IsValidSpecialCode(code))
+        if (await _authService.TrySignInWithSpecialCode(code))
         {
-            // Code is valid, manually sign in the user
-            List<Claim> claims = new()
-            {
-                new(ClaimTypes.Email, code) // You can customize the claims as needed
-            };
-
-            ClaimsIdentity identity = new(claims, "SpecialAccess");
-            ClaimsPrincipal principal = new(identity);
-
-            HttpContext.SignInAsync("Cookies", principal);
-
-            // Redirect to the appropriate page after successful login
-            return RedirectToAction("App", "Home");
+            return RedirectToAction(nameof(HomeController.App), GetControllerName<HomeController>());
         }
-        else
-        {
-            // Code is invalid, handle the error (you may want to redirect to an error page)
-            return RedirectToAction("Index", "Home");
-        }
-    }
 
-    public bool IsValidSpecialCode(string code)
-    {
-        return _appConfig.ValidSpecialCodes.Split(";").Any(c => c == code);
+        // Code is invalid, handle the error (you may want to redirect to an error page)
+        TempData["Error"] = "Invalid access code";
+        return RedirectToAction(nameof(HomeController.Index), GetControllerName<HomeController>());
     }
 }

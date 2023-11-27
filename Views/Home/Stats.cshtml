@@ -1,6 +1,7 @@
 ﻿@using patter_pal.Util;
 @using patter_pal.Models;
 @using patter_pal.Logic;
+@using patter_pal.domain.Config;
 @{
     ViewData["Title"] = "Stats";
 }
@@ -38,7 +39,7 @@
             function updateChart(selectedLanguage) {
                 // Make an AJAX request to fetch data
                 var xhr = new XMLHttpRequest();
-                xhr.open('GET', '/Stats/Data?language=' + selectedLanguage, true);
+                xhr.open('GET', '/@AppConfig.StatsEndpoint' +  '?language=' + selectedLanguage, true);
 
                 // Helper function to group an array of objects by a specified key
                 // Helper function to group an array of objects by a specified key

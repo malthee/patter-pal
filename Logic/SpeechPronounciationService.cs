@@ -3,12 +3,10 @@ using Microsoft.CognitiveServices.Speech.PronunciationAssessment;
 using Microsoft.CognitiveServices.Speech;
 using patter_pal.Util;
 using System.Net.WebSockets;
-using System.Text;
 using System.Text.Json;
 using patter_pal.Models;
-using static patter_pal.Models.SpeechPronounciationResult;
-using static System.Net.Mime.MediaTypeNames;
-using Microsoft.Azure.Cosmos.Serialization.HybridRow;
+using patter_pal.domain.Config;
+using static patter_pal.Models.PronounciationMessageModel;
 
 namespace patter_pal.Logic
 {
@@ -66,6 +64,8 @@ namespace patter_pal.Logic
                             {
                                 _logger.LogDebug("One byte received, manual end signal.");
                                 await recognizer.StopContinuousRecognitionAsync();
+                                // Set error in advance, only used if recognition gets no result
+                                error ??= new ErrorResponse("Recording aborted.", ErrorResponse.ErrorCode.SpeechServiceError);
                             }
                             else audioInputStream.Write(buffer.AsSpan(0, result.Count).ToArray());
                             break;
@@ -79,23 +79,10 @@ namespace patter_pal.Logic
                     }
                 }
 
-                if (recognitionResult != null)
+                // Error may happen after result, ignore it if a successful result happened before
+                if (recognitionResult == null && error != null)
                 {
-                    // Send result to user
-                    var pronounciation = PronunciationAssessmentResult.FromResult(recognitionResult);
-                    var result = new SpeechPronounciationResult(recognitionResult.Text,
-                        language,
-                        pronounciation.AccuracyScore,
-                        pronounciation.FluencyScore,
-                        pronounciation.CompletenessScore,
-                        pronounciation.PronunciationScore,
-                        pronounciation.Words.Select(w => new Word(w.Word, w.AccuracyScore, w.ErrorType)).ToList()
-                    );
-                    await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<SpeechPronounciationResult>(result, SocketResultType.SpeechResult)));
-                }
-                else // Error may happen after result, ignore it if a successful result happened before
-                {
-                    if (error != null) await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<ErrorResponse>(error, SocketResultType.Error)));
+                    await WebSocketHelper.SendTextWhenOpen(ws, JsonSerializer.Serialize(new SocketResult<ErrorResponse>(error, SocketResultType.Error)));
                 }
             }
             catch (Exception e)
@@ -103,6 +90,7 @@ namespace patter_pal.Logic
                 _logger.LogError(e, "Error while reading from WebSocket");
             }
 
+            await recognizer.StopContinuousRecognitionAsync().ConfigureAwait(false);
             _logger.LogDebug("Done with Speech Recognition.");
             return recognitionResult;
         }

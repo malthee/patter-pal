@@ -3,14 +3,16 @@
     /// <summary>
     /// Model for conversation chat messages between user and the assistant.
     /// </summary>
-    public class ChatMessage
+    public class ChatMessageModel
     {
-        public ChatMessage(string text, string language, Guid? id = null, Guid? conversationId = null)
+        public ChatMessageModel(string text, string language, int id, string conversationId, bool isUser)
         {
             Text = text;
             Language = language;
             Id = id;
             ConversationId = conversationId;
+            IsUser = isUser;
+            IsUser = isUser;
         }
 
         public string Text { get; set; }
@@ -23,12 +25,13 @@
         /// <summary>
         /// Identifier of the message.
         /// </summary>
-        public Guid? Id { get; set; }
+        public int Id { get; set; }
 
         /// <summary>
         /// Identifier of the conversation.
         /// </summary>
-        public Guid? ConversationId { get; set; }
+        public string ConversationId { get; set; }
 
+        public bool IsUser { get; set; }
     }
 }

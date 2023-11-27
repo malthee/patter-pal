@@ -1,6 +1,6 @@
 ﻿using patter_pal.Controllers;
 using patter_pal.dataservice.Azure;
-using patter_pal.dataservice.DataObjects;
+using patter_pal.domain.Data;
 using patter_pal.Logic.Interfaces;
 
 namespace patter_pal.Logic.Cosmos

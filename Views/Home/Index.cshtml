@@ -26,17 +26,17 @@
         <div class="collapse" id="accessCodeCollapse">
             <div class="card card-body">
                 <form id="accessForm" asp-controller="Auth" asp-action="SpecialAccess" method="post">
-                    <input type="text" class="form-control" placeholder="Format: aaaaa-aaaaa" name="code">
+                    <input type="text" class="form-control" placeholder="Format: aaaaa-aaaaa" name="code" pattern="^[A-Za-z1-9]{5}-[A-Za-z1-9]{5}$" required>
                     <button class="btn btn-success mt-2">Login</button>
                 </form>
             </div>
         </div>
     </div>
     
-    @if (ViewData["Error"] != null)
+    @if (ViewData["Error"] != null || ViewData["Success"] != null)
     {
-        <div class="login-button mt-3 alert alert-danger alert-dismissible fade show" role="alert">
-            @ViewData["Error"]
+        <div class="login-button mt-3 alert alert-@(ViewData["Error"] == null ? "success" : "danger") alert-dismissible fade show" role="alert">
+            @(ViewData["Error"] ?? ViewData["Success"])
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"/>
         </div>
     }

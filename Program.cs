@@ -1,51 +1,68 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using patter_pal.dataservice.Azure;
-using patter_pal.dataservice.DataObjects;
+using patter_pal.domain.Config;
+using patter_pal.domain.Data;
 using patter_pal.Logic;
 using patter_pal.Logic.Cosmos;
 using patter_pal.Logic.Interfaces;
-using patter_pal.Util;
 
+static void ConfigureAuth(WebApplicationBuilder builder, AppConfig appConfig)
+{
+    builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+    })
+    .AddCookie(options =>
+    {
+        options.ExpireTimeSpan = TimeSpan.FromDays(1);
+        options.AccessDeniedPath = "/Home/Index";
+        options.LoginPath = "/Home/Index";
+    })
+    .AddGoogle(options =>
+    {
+        options.ClientId = appConfig.GoogleOAuthClientID;
+        options.ClientSecret = appConfig.GoogleOAuthClientSecret;
+    });
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy("LoggedInPolicy", policy => policy.RequireAuthenticatedUser());
+    });
+}
+
+static void ConfigureServices(WebApplicationBuilder builder, AppConfig appConfig)
+{
+    builder.Services.AddControllersWithViews();
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddSingleton(appConfig);
+
+    // Data services
+    builder.Services.AddSingleton<CosmosService>();
+    builder.Services.AddScoped<IConversationService, ConversationService>();
+    builder.Services.AddScoped<IUserService, UserService>();
+    builder.Services.AddScoped<IPronounciationAnalyticsService, PronounciationAnalyticsService>();
+    
+    // Logic services
+    builder.Services.AddScoped<AuthService>();
+    builder.Services.AddSingleton<SpeechPronounciationService>();
+    builder.Services.AddSingleton<OpenAiService>();
+    builder.Services.AddSingleton<SpeechSynthesisService>();
+    // Add client with lowered timeout for OpenAI
+    builder.Services.AddHttpClient(Options.DefaultName, c => c.Timeout = TimeSpan.FromSeconds(appConfig.HttpTimeout));
+}
+
+// Start
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-builder.Services.AddControllersWithViews();
 var appConfig = new AppConfig();
+
 builder.Configuration.GetSection("AppConfig").Bind(appConfig);
 appConfig.ValidateConfigInitialized();
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton(appConfig);
-builder.Services.AddSingleton(sp => new CosmosService(appConfig.DbConnectionString, appConfig.CosmosDbDb1, appConfig.CosmosDbDb1C1, appConfig.CosmosDbDb1C1PK, appConfig.CosmosDbDb1C2, appConfig.CosmosDbDb1C2PK));
-builder.Services.AddScoped<IConversationService, ConversationService>();
-builder.Services.AddScoped<UserService>();
-builder.Services.AddSingleton<SpeechPronounciationService>();
-builder.Services.AddSingleton<OpenAiService>();
-builder.Services.AddSingleton<SpeechSynthesisService>();
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
-})
-.AddCookie(options =>
-{
-    options.ExpireTimeSpan = TimeSpan.FromDays(1);
-    options.AccessDeniedPath = "/Home/Index";
-    options.LoginPath = "/Home/Index";
-})
-.AddGoogle(options =>
-{
-    options.ClientId = appConfig.GoogleOAuthClientID;
-    options.ClientSecret = appConfig.GoogleOAuthClientSecret;
-});
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("LoggedInPolicy", policy => policy.RequireAuthenticatedUser());
-});
 
-// Add client with lowered timeout for OpenAI
-builder.Services.AddHttpClient(Options.DefaultName, c => c.Timeout = TimeSpan.FromSeconds(appConfig.HttpTimeout));
+ConfigureServices(builder, appConfig);
+ConfigureAuth(builder, appConfig);
 
 var app = builder.Build();
 

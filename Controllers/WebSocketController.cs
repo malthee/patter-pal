@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.CognitiveServices.Speech;
 using Microsoft.CognitiveServices.Speech.PronunciationAssessment;
-using patter_pal.dataservice.Azure;
-using patter_pal.dataservice.DataObjects;
+using patter_pal.domain.Data;
 using patter_pal.Logic;
 using patter_pal.Logic.Interfaces;
 using patter_pal.Models;
@@ -9,6 +9,7 @@ using patter_pal.Util;
 using System.Net.WebSockets;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using static patter_pal.Models.PronounciationMessageModel;
 
 namespace patter_pal.Controllers
 {
@@ -21,126 +22,183 @@ namespace patter_pal.Controllers
         private readonly SpeechPronounciationService _speechPronounciationService;
         private readonly OpenAiService _openAiService;
         private readonly SpeechSynthesisService _speechSynthesisService;
-        private readonly UserService _userService;
-        private readonly CosmosService _cosmosService;
+        private readonly AuthService _authService;
+        private readonly IPronounciationAnalyticsService _pronounciationAnalyticsService;
         private readonly IConversationService _conversationService;
 
-        public WebSocketController(ILogger<HomeController> logger, SpeechPronounciationService speechPronounciationService, OpenAiService openAiService, SpeechSynthesisService speechSynthesisService, UserService userService, CosmosService cosmosService, IConversationService conversationService)
+        public WebSocketController(ILogger<HomeController> logger,
+            SpeechPronounciationService speechPronounciationService,
+            OpenAiService openAiService,
+            SpeechSynthesisService speechSynthesisService,
+            AuthService authService,
+            IPronounciationAnalyticsService pronounciationAnalyticsService,
+            IConversationService conversationService)
         {
             _logger = logger;
             _speechPronounciationService = speechPronounciationService;
             _openAiService = openAiService;
             _speechSynthesisService = speechSynthesisService;
-            _userService = userService;
-            _cosmosService = cosmosService;
+            _authService = authService;
+            _pronounciationAnalyticsService = pronounciationAnalyticsService;
             _conversationService = conversationService;
         }
 
         /// <summary>
         /// Starts a WebSocket connection and streams the audio to the speech recognition service.
         /// The result is then passed to the OpenAI service and the answer is returned to the client.
+        /// Finally the answer is synthesized and passed to the client.<br/>
+        /// May at any time abort the <see cref="WebSocket"/> if an error occurs.
         /// </summary>
         /// <param name="language">Language identifier</param>
         /// <param name="conversationId">Id of conversation if this is adding to an existing conversation</param>
-        public async Task StartConversation(string language, Guid? conversationId = null)
+        public async Task StartConversation(string language, string? conversationId = null)
         {
-            string? userId = await _userService.GetUserId();
-            if (userId == null)
-            {
-                _logger.LogWarning($"User not logged in");
-                HttpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                return;
-            }
-
-            if (!Regex.IsMatch(language, "^[a-zA-Z]{2}-[a-zA-Z1-9]{2,3}$"))
-            {
-                _logger.LogWarning($"Invalid language format: {language}");
-                HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
-                return;
-            }
-
-            if (!HttpContext.WebSockets.IsWebSocketRequest)
-            {
-                _logger.LogWarning("Request is not a WebSocket request");
-                HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
-                return;
-            }
+            string? userId = await _authService.GetUserId();
+            if (!CheckForValidRequest(userId, language)) return;
 
             using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
-            _logger.LogDebug("WebSocket started");
+            _logger.LogDebug($"WebSocket started with language: {language}, conversationId: {conversationId}");
 
             // Azure Speech
             if (!ShouldContinueConversationFlow(webSocket)) return;
-            var reconitionResult = await _speechPronounciationService.StreamFromWebSocket(webSocket, language);
-            if (reconitionResult == null)
-            {
-                _logger.LogWarning("Returned null from SpeechPronounciationService, aborting WebSocket");
-                webSocket.Abort();
-                return;
-            }
-            /*
-            // add new conversation if conversationId was null
-            if (string.IsNullOrEmpty(conversationId))
-            {
-                ConversationData newConversation = new() { Title = $"New Conversation ({language})" };
-                bool addConversationResult = await _conversationService.AddConversationAsync(userId, newConversation);
-                if (!addConversationResult)
-                {
-                    _logger.LogWarning("Could not add conversation");
-                    webSocket.Abort();
-                    return;
-                }
-                conversationId = newConversation.Id;
-            }
-
-            bool addChatSuccess = await _conversationService.AddChatAsync(userId, conversationId, new ChatData(true, reconitionResult.Text, language));
-            if (!addChatSuccess)
-            {
-                _logger.LogWarning("Could not add chat message");
-                webSocket.Abort();
-                return;
-            }
-            */
-
-            var pronounciationResult = PronunciationAssessmentResult.FromResult(reconitionResult);
-            var speechResultData = new SpeechPronounciationResultData
-            {
-                Language = language,
-                Timestamp = DateTime.UtcNow,
-                UserId = userId,
-                AccuracyScore = (decimal)pronounciationResult.AccuracyScore,
-                FluencyScore = (decimal)pronounciationResult.FluencyScore,
-                CompletenessScore = (decimal)pronounciationResult.CompletenessScore,
-                PronounciationScore = (decimal)pronounciationResult.PronunciationScore,
-                Words = new(pronounciationResult.Words.Select(w => new WordData() { AccuracyScore = (decimal)w.AccuracyScore, ErrorType = w.ErrorType, Text = w.Word }))
-
-            };
-            bool addSpeechResultSuccess = await _cosmosService.AddSpeechPronounciationResultDataAsync(userId, speechResultData);
-            if (!addSpeechResultSuccess)
-            {
-                _logger.LogWarning("Could not add speech result");
-                webSocket.Abort();
-                return;
-            }
+            var speechResult = await HandleSpeechRecognition(webSocket, language, userId!, conversationId);
 
             // OpenAi
-            if (!ShouldContinueConversationFlow(webSocket)) return;
-            var conversationAnswer = await _openAiService.StreamAndGenerateAnswer(webSocket, reconitionResult, language, conversationId);
-            if (conversationAnswer == null)
-            {
-                _logger.LogWarning("Returned null from OpenAiService, aborting WebSocket");;
-                webSocket.Abort();
-                return;
-            }
+            if (!ShouldContinueConversationFlow(webSocket) || speechResult == null) return;
+            (ConversationData conversation, SpeechRecognitionResult recognitionResult) = speechResult.Value;
+            var conversationAnswer = await HandleOpenAiAnswer(webSocket, conversation, recognitionResult, language, userId!);
 
             // Synthesize answer
-            if (!ShouldContinueConversationFlow(webSocket)) return;
-            await _speechSynthesisService.SendSynthesizedText(webSocket, conversationAnswer.Text, language);
+            if (!ShouldContinueConversationFlow(webSocket) || conversationAnswer == null) return;
+            await _speechSynthesisService.SendSynthesizedText(webSocket, conversationAnswer, language);
 
             await webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Finished", CancellationToken.None);
             _logger.LogDebug("WebSocket workflow finished");
         }
 
         private bool ShouldContinueConversationFlow(WebSocket ws) => ws.State == WebSocketState.Open;
+
+        private bool CheckForValidRequest(string? userId, string language)
+        {
+            if (userId == null)
+            {
+                _logger.LogWarning($"User not logged in");
+                HttpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return false;
+            }
+
+            if (!Regex.IsMatch(language, "^[a-zA-Z]{2}-[a-zA-Z1-9]{2,3}$"))
+            {
+                _logger.LogWarning($"Invalid language format: {language}");
+                HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+                return false;
+            }
+
+            if (!HttpContext.WebSockets.IsWebSocketRequest)
+            {
+                _logger.LogWarning("Request is not a WebSocket request");
+                HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Performs the speech recognition, streams results to the client and adds the result to the database.
+        /// Creates a new conversation if no conversationId is provided.
+        /// </summary>
+        /// <param name="webSocket"></param>
+        /// <param name="language"></param>
+        /// <param name="userId"></param>
+        /// <param name="initialConversationId"></param>
+        /// <returns>The active <see cref="ConversationData"/> and the <see cref="SpeechRecognitionResult"/> if successful, null otherwise</returns>
+        private async Task<(ConversationData conversation, SpeechRecognitionResult speechRecognition)?> HandleSpeechRecognition(WebSocket webSocket, string language, string userId, string? initialConversationId)
+        {
+            var reconitionResult = await _speechPronounciationService.StreamFromWebSocket(webSocket, language);
+            if (reconitionResult == null)
+            {
+                _logger.LogWarning("Returned null from SpeechPronounciationService, aborting WebSocket");
+                webSocket.Abort();
+                return null;
+            }
+
+            // Create or get conversation from db
+            var conversation = initialConversationId != null ?
+                await _conversationService.GetConversationAndChatsAsync(userId, initialConversationId) :
+                // Create a new Conversation with the title being the first 10 words of the first chat
+                new ConversationData() { Title = string.Join(" ", reconitionResult.Text.Split(" ").Take(10)) };
+
+            // Add chat to conversation
+            var chatRequest = new ChatData(true, reconitionResult.Text, language);
+            var pronounciation = PronunciationAssessmentResult.FromResult(reconitionResult);
+            if (conversation == null
+                // Add a new conversation if no conversationId was provided
+                || (initialConversationId == null && !await _conversationService.AddConversationAsync(userId, conversation))
+                || !await _conversationService.AddChatAsync(userId, conversation.Id!, chatRequest)
+                || !await _pronounciationAnalyticsService.AddSpeechPronounciationResultDataAsync(userId, language, pronounciation))
+            {
+                await WebSocketHelper.SendTextWhenOpen(webSocket, JsonSerializer.Serialize(
+                    new ErrorResponse("Could not find or create conversation. Please try again later.", ErrorResponse.ErrorCode.DatabaseError)
+                ));
+                _logger.LogError("Could not add Conversation or SpeechPronounciationResult to database.");
+                webSocket.Abort();
+                return null;
+            }
+
+            // Send result to user
+            var result = new PronounciationMessageModel(chatRequest.Text,
+                language,
+                chatRequest.Id,
+                conversation.Id!,
+                pronounciation.AccuracyScore,
+                pronounciation.FluencyScore,
+                pronounciation.CompletenessScore,
+                pronounciation.PronunciationScore,
+                pronounciation.Words.Select(w => new Word(w.Word, w.AccuracyScore, w.ErrorType)).ToList()
+            );
+            await WebSocketHelper.SendTextWhenOpen(webSocket, JsonSerializer.Serialize(new SocketResult<PronounciationMessageModel>(result, SocketResultType.SpeechResult)));
+            return (conversation, reconitionResult);
+        }
+
+
+        /// <summary>
+        /// Requests answer form OpenAi, streams results to the client and adds the answer to the database.
+        /// </summary>
+        /// <param name="webSocket"></param>
+        /// <param name="conversation"></param>
+        /// <param name="recognitionResult"></param>
+        /// <param name="language"></param>
+        /// <param name="userId"></param>
+        /// <returns>The answer from OpenAi if successful, null otherwise</returns>
+        private async Task<string?> HandleOpenAiAnswer(WebSocket webSocket, ConversationData conversation, SpeechRecognitionResult recognitionResult, string language, string userId)
+        {
+            var conversationAnswer = await _openAiService.StreamAndGenerateAnswer(webSocket, recognitionResult, conversation, language);
+            if (conversationAnswer == null)
+            {
+                _logger.LogWarning("Returned null from OpenAiService, aborting WebSocket"); ;
+                webSocket.Abort();
+                return null;
+            }
+
+            var chatAnswer = new ChatData(false, conversationAnswer, language);
+
+            // Add AI answer to database
+            if (!await _conversationService.AddChatAsync(userId, conversation.Id, chatAnswer))
+            {
+                await WebSocketHelper.SendTextWhenOpen(webSocket, JsonSerializer.Serialize(
+                     new ErrorResponse("Could not add answer to conversation. Please try again later.", ErrorResponse.ErrorCode.DatabaseError)
+                 ));
+                _logger.LogWarning($"Could not add to conversation ${conversation.Id} as ConversationService returned false.");
+                webSocket.Abort();
+                return null;
+            }
+
+            await WebSocketHelper.SendTextWhenOpen(webSocket,
+                JsonSerializer.Serialize(new SocketResult<ChatMessageModel>(
+                    new ChatMessageModel(chatAnswer.Text, chatAnswer.Language, chatAnswer.Id, conversation.Id, false), SocketResultType.AnswerResult))
+                );
+            return conversationAnswer;
+        }
     }
 }

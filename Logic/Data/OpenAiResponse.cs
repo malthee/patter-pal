@@ -1,7 +1,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace patter_pal.Models
+namespace patter_pal.Logic.Data
 {
     public class OpenAiChatCompletionResponse
     {
@@ -37,21 +37,21 @@ namespace patter_pal.Models
 
     public class OpenAiChoice
     {
-    public OpenAiChoice(int index, OpenAiMessage delta, string finishReason)
-    {
-        Index = index;
-        Delta = delta;
-        FinishReason = finishReason;
-    }
+        public OpenAiChoice(int index, OpenAiMessage delta, string finishReason)
+        {
+            Index = index;
+            Delta = delta;
+            FinishReason = finishReason;
+        }
 
-    [JsonPropertyName("index")]
-    public int Index { get; set; }
+        [JsonPropertyName("index")]
+        public int Index { get; set; }
 
-    [JsonPropertyName("delta")]
-    public OpenAiMessage? Delta { get; set; }
+        [JsonPropertyName("delta")]
+        public OpenAiMessage? Delta { get; set; }
 
-    [JsonPropertyName("finish_reason")]
-    public string FinishReason { get; set; }
+        [JsonPropertyName("finish_reason")]
+        public string FinishReason { get; set; }
     }
 
     // Not supported in streaming yet
