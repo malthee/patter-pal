@@ -28,7 +28,7 @@
         </button>
         <div id="conversationContainer" class="list-group">
             <div id="conversationTemplate" class="conversation-entry list-group-item list-group-item-action d-none d-flex justify-content-between">
-                <div class="conversation-title"></div>
+                <div class="conversation-title text-truncate"></div>
                 <div class="conversation-actions d-none d-flex ps-3">
                     <button type="button" title="Edit" class="edit-conversation-button btn p-0">✏️</button>
                     <button type="button" title="Delete" class="delete-conversation-button btn p-0">🗑</button>
@@ -113,6 +113,46 @@
         <span class="speaker-img right">😀</span>
     </div>
 </div>
+<!-- Delete Modal -->
+<div id="deleteConfirmModal" class="modal fade" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this conversation? This cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button id="deleteConfirmButton" type="button" class="btn btn-danger">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modify Modal -->
+<div id="modifyModal" class="modal fade" tabindex="-1" aria-labelledby="modifyModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modifyModalLabel">Modify Conversation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Text field with title -->
+                <div class="mb-3">
+                    <label for="modifyConversationTitle" class="form-label">Title</label>
+                    <input type="text" class="form-control" id="modifyConversationTitle" maxlength="50" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button id="modifyConfirmButton" type="button" class="btn btn-warning">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
     <script type="module">
@@ -120,6 +160,7 @@
         import { AudioRecognitionStreamer } from '/js/audio_recognition.js';
         import * as metricsProgress from '/js/metrics_progress.js'
         import * as conversationApi from '/js/conversation_api.js'
+        import * as conversationModals from '/js/conversation_modals.js'
 
         const micButton = document.getElementById('micButton');
         const stateLabel = document.getElementById('stateLabel');
@@ -130,6 +171,7 @@
         const rightBubbleTemplate = document.getElementById('rightBubbleTemplate');
         const conversationContainer = document.getElementById('conversationContainer');
         const conversationTemplate = document.getElementById('conversationTemplate');
+        const newConversationButton = document.getElementById('newConversationButton');
 
         // Enum for socket result types
         const SocketResultType = {
@@ -157,17 +199,18 @@
         // Initially loads conversations and the history of the currently selected conversation
         async function initLoadConversations() {
             updateConversationUi();
-            // New conversation button active when others are not
-            document.getElementById('newConversationButton').classList.toggle('active', !currentConversationId);
+            let historyTask; // Task to wait for history to be loaded
 
             try {
                 const conversations = await conversationApi.fetchConversations(resolveHostURL('@AppConfig.ConversationRestEndpoint'));
                 conversations.forEach(conversation => {
-                    // Active when matches the query parameter conversation id
-                    prependConversationEntry(conversation.id, conversation.title, conversation.id == currentConversationId);
+                    // Newer conversations are prepended, so the first one is the newest
+                    const el = prependConversationEntry(conversation.id, conversation.title);
+                    if (conversation.id == currentConversationId) historyTask = setActiveConversation.call(el, true);
                 });
 
-                await loadConversationHistory();
+                if (historyTask) await historyTask;
+                else await setActiveConversation.call(newConversationButton, true); // Set active conversation to new conv
             } catch (e) {
                 showToast(e.message, 'danger');
             }
@@ -207,8 +250,6 @@
 
         // Sets the currently selected conversation and optionally loads history from db
         async function setActiveConversation(loadHistory = true) {
-            if (this.dataset.conversationId == getQueryParameters().conversationId) return; // No need to reload already selected
-
             const conversationElements = document.querySelectorAll('.conversation-entry');
             conversationElements.forEach(element => {
                 // Set other elements inactive, remove buttons
@@ -220,26 +261,43 @@
             this.querySelector('.conversation-actions')?.classList?.remove('d-none');
             this.classList.add('active');
 
-            updateQueryParameters({ 'conversationId': this.dataset.conversationId })
-            currentConversationId = this.dataset.conversationId;
+            // Only add to history when not already there
+            if (this.dataset.conversationId != getQueryParameters().conversationId) {
+                updateQueryParameters({ 'conversationId': this.dataset.conversationId })
+                currentConversationId = this.dataset.conversationId;
+            }
 
             // Fetch history or display default messages on new convo
             if (loadHistory) await loadConversationHistory();
             scrollTextBubbleContainer();
         }
 
-        function prependConversationEntry(id, title, active = false) {
+        function prependConversationEntry(id, title) {
             const clone = conversationTemplate.cloneNode(true);
             clone.removeAttribute('id');
             clone.classList.remove('d-none');
-            clone.classList.toggle('active', active);
             clone.dataset.conversationId = id;
             clone.onclick = setActiveConversation;
             const titleElement = clone.querySelector('.conversation-title');
             const actionElement = clone
             const editButton = clone.querySelector('.edit-conversation-button')
             const deleteButton = clone.querySelector('.delete-conversation-button')
-            titleElement.innerHTML = title;
+            editButton.onclick = (e) => {
+                e.stopPropagation();
+                conversationModals.showModifyModal(
+                    resolveHostURL('@AppConfig.ConversationRestEndpoint'), id, titleElement.textContent, (c) => {
+                        titleElement.textContent = c.Title;
+                    });
+            };
+            deleteButton.onclick = (e) => {
+                e.stopPropagation();
+                conversationModals.showDeleteModal(
+                    resolveHostURL('@AppConfig.ConversationRestEndpoint'), id, async () => {
+                        clone.parentNode?.removeChild(clone);
+                        await setActiveConversation.call(newConversationButton, true);
+                    });
+            };
+            titleElement.textContent = title;
             conversationContainer.prepend(clone);
             return clone;
         }
@@ -332,7 +390,7 @@
                         // Select and add conversation if new
                         if (getQueryParameters().conversationId != currentConversationId) {
                             console.log('New conversation started.');
-                            const conversation = prependConversationEntry(currentConversationId, 'Just added', true);
+                            const conversation = prependConversationEntry(currentConversationId, 'Just added');
                             setActiveConversation.call(conversation, false); // Set active without loading history
                         }
                         break;
@@ -466,7 +524,7 @@
             // Cancel audio playback
             destroyAudioPlayer();
 
-            let connectionUrl = resolveHostWebSocketURL("@AppConfig.ConversationWebSocket" + "/" + languageSelect.value); // add /currentConversationId when not null
+            let connectionUrl = resolveHostWebSocketURL('@AppConfig.ConversationWebSocket' + '/' + languageSelect.value); // add /currentConversationId when not null
             if (currentConversationId) connectionUrl += '/' + currentConversationId;
             socket = new WebSocket(connectionUrl);
             audioRecStreamer = new AudioRecognitionStreamer(socket, @AppConfig.RecordingBufferSize, @AppConfig.RecordingChunkTimeMs, @AppConfig.TargetSampleRate);
@@ -474,7 +532,7 @@
         };
 
         // Special conversation-entry handling as this is not in the container
-        document.getElementById('newConversationButton').onclick = setActiveConversation;
+        newConversationButton.onclick = setActiveConversation;
 
         // Navigating back should reload the conversations
         window.addEventListener('popstate', () => {

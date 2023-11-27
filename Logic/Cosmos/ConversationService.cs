@@ -54,7 +54,9 @@ namespace patter_pal.Logic.Cosmos
                 _logger.LogInformation($"Could not find conversation '{conversation.Id}' of user '{userId}'");
                 return false;
             }
-            return await _cosmosService.UpdateConversationTitleAsync(conversation);
+
+            existingConversation.Title = conversation.Title;
+            return await _cosmosService.UpdateConversationTitleAsync(existingConversation);
         }
 
         public async Task<bool> DeleteConversationAsync(string userId, string conversationId)

@@ -29,6 +29,7 @@ namespace patter_pal.Controllers
         public async Task<ActionResult<List<ConversationModel>>> GetConversations()
         {
             string userId = (await _authService.GetUserId())!;
+            _logger.LogDebug($"Getting conversations for user {userId}");
             var result = await _conversationService.GetConversationsAsync(userId);
             if (result == null) return NotFound();
 
@@ -40,6 +41,7 @@ namespace patter_pal.Controllers
         public async Task<ActionResult<List<ChatMessageModel>>> GetChatsByConversationId(string conversationId)
         {
             string userId = (await _authService.GetUserId())!;
+            _logger.LogDebug($"Getting chats for user {userId} and conversation {conversationId}");
             var result = await _conversationService.GetConversationAndChatsAsync(userId, conversationId);
             if (result == null) return NotFound();
 
@@ -50,7 +52,8 @@ namespace patter_pal.Controllers
         public async Task<ActionResult> UpdateConversation(ConversationModel conversation)
         {
             string userId = (await _authService.GetUserId())!;
-            var model = new ConversationData { Id = conversation.Id, Title = conversation.Id };
+            _logger.LogDebug($"Updating conversation {conversation.Id} for user {userId}");
+            var model = new ConversationData { Id = conversation.Id, Title = conversation.Title };
 
             return await _conversationService.UpdateConversationAsync(userId, model) ? Ok() : NotFound();
         }
@@ -59,6 +62,7 @@ namespace patter_pal.Controllers
         public async Task<ActionResult> DeleteConversation(string conversationId)
         {
             string userId = (await _authService.GetUserId())!;
+            _logger.LogDebug($"Deleting conversation {conversationId} for user {userId}");
 
             return await _conversationService.DeleteConversationAsync(userId, conversationId) ? Ok() : NotFound();
         }
