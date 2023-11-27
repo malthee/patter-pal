@@ -106,23 +106,23 @@
         const BubbleEmojies = ["😀", "😁", "😃", "😄", "🙂", "🧐"];
 
         let currentConversationId = getQueryParameters().conversationId;
-        const cachedAudioUrls = new Map();
+        const cachedAudioUrls = new Map(); // TODO
         let audioRecStreamer = null;
         let audioPlayer = null;
         let socket = null;
         let currentChatId = null;
         let currentSpeechOutputBubble = null;
         let currentAnswerOutputBubble = null;
-        let initialLoadDone = false; 
+        let initialLoadDone = false;
 
         // Load data initially todo select this initial one
-        updateConversationUi();
-        initLoadConversations().finally(updateConversationUi);
+        initLoadConversations();
 
         // --- Conversation and history --- //
 
         // Initially loads conversations and the history of the currently selected conversation
         async function initLoadConversations() {
+            updateConversationUi();
             // New conversation button active when others are not
             document.getElementById('newConversationButton').classList.toggle('active', !currentConversationId);
 
@@ -139,6 +139,7 @@
             }
 
             initialLoadDone = true;
+            updateConversationUi();
         }
 
         // Fetches history data or displays into messages
@@ -171,7 +172,7 @@
 
         // Sets the currently selected conversation and optionally loads history from db
         async function setActiveConversation(loadHistory = true) {
-            if(this.dataset.conversationId == currentConversationId) return; // No need to reload already selected
+            if (this.dataset.conversationId == currentConversationId) return; // No need to reload already selected
 
             const conversationElements = document.querySelectorAll('.conversation-entry');
             conversationElements.forEach(element => {
@@ -188,7 +189,7 @@
             currentConversationId = this.dataset.conversationId;
 
             // Fetch history or display default messages on new convo
-            if (loadHistory) await loadConversationHistory(); 
+            if (loadHistory) await loadConversationHistory();
             scrollTextBubbleContainer();
         }
 
