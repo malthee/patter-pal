@@ -16,12 +16,27 @@
 <div class="max-height-500 col-12 col-lg-3 text-center align-self-end align-self-lg-center">
     <form id="languageFilterForm">
         <div id="languageSelectContainer" class="pt-3 fade-in">
-            <h3>Filter stats by language:</h3>
+            <h2>Filters:</h2>
+            <h3>Language:</h3>
             <select class="form-select text-center" id="languageSelect" title="Which language you want to filter">
-                <option value="All" selected="true">All Languages</option>
+                <option value="@LanguageConstants.LanguageAll" selected="true">All Languages</option>
                 @foreach (var language in LanguageConstants.Languages)
                 {
                     <option value="@language.Key">@language.Value</option>
+                }
+            </select>
+            <h3>Time Periods:</h3>
+            <select class="form-select text-center" id="timePeriodSelect" title="Which language you want to filter">
+                @foreach (var timePeriod in TimePeriodConstants.TimePeriods)
+                {
+                    <option value="@timePeriod.Key" selected="@(timePeriod.Key==TimePeriodConstants.DefaultTimePeriod)">@timePeriod.Value</option>
+                }
+            </select>
+            <h3>Time Resolution:</h3>
+            <select class="form-select text-center" id="timeResolutionSelect" title="Which language you want to filter">
+                @foreach (var timeResolution in TimeResolutionConstants.TimeResolutions)
+                {
+                    <option value="@timeResolution.Key" selected="@(timeResolution.Key==TimeResolutionConstants.DefaultTimeResolution)">@timeResolution.Value</option>
                 }
             </select>
             <button type="submit" class="btn btn-primary mt-3">Apply Filter</button>
@@ -36,10 +51,10 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Define a function to update the chart based on the selected language
-            function updateChart(selectedLanguage) {
+            function updateChart(selectedLanguage, selectedTimePeriod, selectedTimeResolution) {
                 // Make an AJAX request to fetch data
                 var xhr = new XMLHttpRequest();
-                xhr.open('GET', '/@AppConfig.StatsEndpoint' +  '?language=' + selectedLanguage, true);
+                xhr.open('GET', '/@AppConfig.StatsEndpoint' + '?language=' + selectedLanguage + '&timePeriod=' + selectedTimePeriod + '&timeResolution=' + selectedTimeResolution, true);
 
                 // Helper function to group an array of objects by a specified key
                 // Helper function to group an array of objects by a specified key
@@ -119,22 +134,25 @@
                                     x: {
                                         type: 'time',
                                         time: {
-                                            unit: 'day',
-                                            minUnit: 'day',
+                                            unit: responseData.chartUnit,
+                                            minUnit: responseData.chartUnit,
                                             displayFormats: {
-                                                day: 'MMM D' // Format for the day, e.g., Jan 1
+                                                [responseData.chartDisplayFormatType]: responseData.chartDisplayFormat // Format for the day, e.g., Jan 1
                                             },
-                                            tooltipFormat: 'MMM D, YYYY'
+                                            tooltipFormat: 'MMM D h A, YYYY'
                                         },
                                         title: {
                                             display: true,
-                                            text: 'Timestamp'
+                                            text: 'Time'
+                                        },
+                                        ticks: {
+                                            stepSize: 3
                                         }
                                     },
                                     y: {
                                         title: {
                                             display: true,
-                                            text: 'Score'
+                                            text: 'Average Scores'
                                         }
                                     }
                                 }
@@ -167,9 +185,11 @@
 
                 // Get the selected language from the dropdown
                 var selectedLanguage = document.getElementById('languageSelect').value;
+                var selectedTimePeriod = document.getElementById('timePeriodSelect').value;
+                var selectedTimeResolution = document.getElementById('timeResolutionSelect').value;
 
                 // Call the updateChart function with the selected language
-                updateChart(selectedLanguage);
+                updateChart(selectedLanguage, selectedTimePeriod, selectedTimeResolution);
             });
         });
     </script>
