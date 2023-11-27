@@ -14,15 +14,17 @@ using static patter_pal.Util.ControllerHelper;
 [AllowAnonymous]
 public class AuthController : Controller
 {
+    private readonly ILogger<AuthController> _logger;
     private readonly AuthService _authService;
     private readonly IUserService _userService;
     private readonly AppConfig _appConfig;
 
-    public AuthController(AuthService authService, IUserService userService, AppConfig appConfig)
+    public AuthController(AuthService authService, IUserService userService, AppConfig appConfig, ILogger<AuthController> logger)
     {
         _authService = authService;
         _userService = userService;
         _appConfig = appConfig;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -41,8 +43,9 @@ public class AuthController : Controller
     {
         // Retrieve the external login information
         var info = await HttpContext.AuthenticateAsync("Cookies");
-        if (info == null)
+        if (info == null || info.Failure != null)
         {
+            _logger.LogInformation($"External login failed. Optional message: {info?.Failure?.Message}");
             TempData["Error"] = "Unsuccessful login.";
             return RedirectToAction(nameof(HomeController.Index), GetControllerName<HomeController>());
         }
@@ -56,6 +59,7 @@ public class AuthController : Controller
     [HttpPost]
     public async Task<IActionResult> Logout()
     {
+        _logger.LogDebug("Logging out user");
         // Sign out the user
         await _authService.Logout();
 
@@ -67,6 +71,8 @@ public class AuthController : Controller
     public async Task<IActionResult> DeleteEverything()
     {
         string? userId = await _authService.GetUserId();
+        _logger.LogInformation($"Deleting all data of user {userId}");
+
         if (userId == null)
         {
             TempData["Error"] = "You are not logged in.";
@@ -83,8 +89,11 @@ public class AuthController : Controller
     [HttpPost]
     public async Task<IActionResult> SpecialAccess(string code)
     {
+        _logger.LogDebug($"Trying to sign in with special access code {code}");
+
         if (await _authService.TrySignInWithSpecialCode(code))
         {
+            _logger.LogInformation($"Successfully signed in with special access code {code}");
             return RedirectToAction(nameof(HomeController.App), GetControllerName<HomeController>());
         }
 
