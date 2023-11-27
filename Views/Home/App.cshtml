@@ -51,7 +51,34 @@
             }
         </select>
     </div>
-    <p id="stateLabel" class="text-muted text-center">Ready to connect...</p>
+    <p id="stateLabel" class="text-muted text-center mb-3">Ready to connect...</p>
+    <!-- Pronounciation charts -->
+    <div id="pronounciationChats" class="d-flex justify-content-between mb-3">
+        <div class="me-3 d-flex flex-column justify-content-between text-start">
+            <span data-bs-toggle="tooltip" data-bs-placement="left" title="Pronunciation accuracy assesses how closely speech phonemes match native pronunciation, aggregating word and text scores from phoneme-level accuracy.">Accuracy</span>
+            <br/>
+            <span data-bs-toggle="tooltip" data-bs-placement="left" title="Fluency measures how well the speech aligns with a native speaker's usage, particularly in terms of pauses between words.">Fluency</span>
+            <br />
+            <span data-bs-toggle="tooltip" data-bs-placement="left" title="Prosody evaluates the naturalness of speech, encompassing stress, intonation, speed, and rhythm">Prosody</span>
+        </div>
+        <div class="flex-grow-1">
+            <div class="mb-1">
+                <div class="progress">
+                    <div id="accuracy-bar" class="progress-bar bg-primary ps-1" style="width:4%" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+            <div class="mb-1">
+                <div class="progress">
+                    <div id="fluency-bar" class="progress-bar bg-primary ps-1" style="width:80%" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+            <div>
+                <div class="progress">
+                    <div id="prosody-bar" class="progress-bar bg-primary ps-1" style="width:30%" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Right column for text bubbles -->
@@ -175,7 +202,7 @@
 
         // Sets the currently selected conversation and optionally loads history from db
         async function setActiveConversation(loadHistory = true) {
-            if (this.dataset.conversationId == currentConversationId) return; // No need to reload already selected
+            if (this.dataset.conversationId == getQueryParameters().conversationId) return; // No need to reload already selected
 
             const conversationElements = document.querySelectorAll('.conversation-entry');
             conversationElements.forEach(element => {
@@ -244,32 +271,35 @@
             destroyAudioPlayer();
         }
 
+        function playAudio(audioBlob) {
+            const audioUrl = URL.createObjectURL(audioBlob);
+
+            audioPlayer = new Audio(audioUrl);
+            updateConversationUi();
+            //cachedAudioUrls.set(currentChatId, audioUrl);
+
+            audioPlayer.onplay = () => {
+                audioPlayer._emojiInterval = setInterval(() => updateBubbleEmoji(currentAnswerOutputBubble), 500);
+            }
+
+            audioPlayer.play()
+                .catch(e => {
+                    console.error('Error playing audio:', e);
+                    showToast('Cannot play audio in your browser.<br/>Your browser might need to be updated or you need to give us permissions to play audio.', 'warning');
+                    destroyAudioPlayer();
+                });
+
+            audioPlayer.onended = () => {
+                destroyAudioPlayer();
+            };
+        }
+
         function socketMessageHandler(message) {
             try {
                 // Audio synthesis
                 if (message.data instanceof Blob) {
                     destroySocket(); // Final result received, close socket
-                    const audioBlob = message.data;
-                    const audioUrl = URL.createObjectURL(audioBlob);
-
-                    audioPlayer = new Audio(audioUrl);
-                    updateConversationUi();
-                    //cachedAudioUrls.set(currentChatId, audioUrl);
-
-                    audioPlayer.onplay = () => {
-                        audioPlayer._emojiInterval = setInterval(() => updateBubbleEmoji(currentAnswerOutputBubble), 500);
-                    }
-
-                    audioPlayer.play()
-                        .catch(e => {
-                            console.error('Error playing audio:', e);
-                            showToast('Cannot play audio in your browser.<br/>Your browser might need to be updated or you need to give us permissions to play audio.', 'warning');
-                            destroyAudioPlayer();
-                        });
-
-                    audioPlayer.onended = () => {
-                        destroyAudioPlayer();
-                    };
+                    playAudio(message.data);
                     return;
                 }
 
@@ -287,9 +317,11 @@
                         break;
                     case (SocketResultType.SpeechResult):
                         stopAudioStream();
-                        setBubbleText(currentSpeechOutputBubble)(htmlEscape(result.Data.Text));
-                        // TODO show mispronouncs
+                        console.log(result.Data);
+                        setBubbleText(currentSpeechOutputBubble)(escapeAndMarkMistakesInText(result.Data));
+                        enableTooltips(currentSpeechOutputBubble);
                         currentConversationId = result.Data.ConversationId;
+
                         // Select and add conversation if new
                         if (getQueryParameters().conversationId != currentConversationId) {
                             console.log('New conversation started.');
@@ -377,6 +409,41 @@
             const emojiElement = bubble.querySelector('.speaker-img');
             const randomEmoji = BubbleEmojies[Math.floor(Math.random() * BubbleEmojies.length)];
             emojiElement.innerHTML = randomEmoji;
+        }
+
+        function enableTooltips(bubble) {
+            let tooltipTriggerList = [].slice.call(bubble.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            tooltipTriggerList.forEach((tooltipTriggerEl) => {
+                new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+        }
+
+        function escapeAndMarkMistakesInText(pronounciationResult) {
+            const words = pronounciationResult.Words;
+            const result = [];
+            let text = htmlEscape(pronounciationResult.Text);
+
+            words.forEach(wordInfo => {
+                // Create a regex to find the next occurrence of the word, case-insensitive
+                const regex = new RegExp(`${wordInfo.Text}`, 'i');
+                const match = regex.exec(text);
+
+                if (match) {
+                    // Add everything before the match to the result
+                    result.push(text.substring(0, match.index));
+
+                    // Add the marked word to the result if there is an error type, otherwise add the word as is
+                    result.push(wordInfo.ErrorType && wordInfo.ErrorType != 'None'
+                        ? `<mark data-bs-toggle="tooltip" data-bs-placement="bottom" title="${wordInfo.ErrorType}">${match[0]}</mark>`
+                        : match[0]);
+
+                    // Update text to only include the part after the current match
+                    text = text.substring(match.index + match[0].length);
+                }
+            });
+
+            result.push(text);
+            return result.join('');
         }
 
         // --- Event Handlers --- //

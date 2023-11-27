@@ -68,27 +68,10 @@ body {
         z-index: 1;
     }
 
-/* Subtle pulsing effect */
-@keyframes micPulseAnimation {
-    0%, 100% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.05); /* Less expansion for a smoother effect */
-    }
-}
-/* Softer color change effect */
-@keyframes micColorChangeAnimation {
-    0%, 100% {
-        background-color: #FFF;
-        border-color: #FFF; /* Original color */
-    }
-
-    50% {
-        background-color: #FF8A8A;
-        border-color: #FF8A8A; /* Softer shade of red */
-    }
+.chat-bubble {
+    opacity: 0;
+    animation: fadeIn 0.75s ease-out;
+    animation-fill-mode: forwards;
 }
 
 .speaker-img {
@@ -115,6 +98,44 @@ body {
     z-index: 1100; /* Higher than other BS components */
 }
 
+/* Left menu is clickable */
 .conversation-entry{
     cursor: pointer;
+}
+
+.progress{
+    height: 1.5rem;
+}
+
+/* Subtle pulsing effect */
+@keyframes micPulseAnimation {
+    0%, 100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05); /* Less expansion for a smoother effect */
+    }
+}
+/* Softer color change effect */
+@keyframes micColorChangeAnimation {
+    0%, 100% {
+        background-color: #FFF;
+        border-color: #FFF; /* Original color */
+    }
+
+    50% {
+        background-color: #FF8A8A;
+        border-color: #FF8A8A; /* Softer shade of red */
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
