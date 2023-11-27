@@ -5,13 +5,16 @@
     ViewData["Title"] = "Home Page";
 }
 
-<div class="fixed-top pe-none text-end mt-4 me-4">
-    <a href="#" title="Toggle History" class="pe-auto text-decoration-none border-4 rounded-circle bg-light menu-button" data-bs-toggle="collapse" data-bs-target="#leftMenu" aria-expanded="false" aria-controls="leftMenu">📃</a>
-    <a asp-controller="Home" asp-action="Stats" title="Show Stats" class="pe-auto text-decoration-none border-4 rounded-circle bg-light menu-button">📊</a> <!-- TODO stats -->
-    <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post" class="pe-auto align-top d-inline-block">
-        @Html.AntiForgeryToken()
-        <button type="submit" title="Logout" class="btn btn-light m-0 p-0 text-decoration-none border-4 rounded-circle menu-button">🚪</button>
-    </form>
+<div class="fixed-top pe-none text-end mt-4 me-4 ms-4 d-flex justify-content-between">
+    <a asp-controller="Home" asp-action="App" title="Home" class="pe-auto"><img alt="PatterPal Logo" src="~/img/logo.svg" height="84" width="84" class="align-top" /></a>
+    <div class="pe-auto">
+        <button type="button" title="Toggle History" class="btn btn-light align-top text-decoration-none border-4 rounded-circle m-0 p-0 menu-button" data-bs-toggle="collapse" data-bs-target="#leftMenu" aria-expanded="false" aria-controls="leftMenu">📃</button>
+        <a asp-controller="Home" asp-action="Stats" title="Show Stats" class="text-decoration-none border-4 rounded-circle bg-light menu-button">📊</a> <!-- TODO stats -->
+        <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post" class="align-top d-inline-block">
+            @Html.AntiForgeryToken()
+            <button type="submit" title="Logout" class="btn btn-light m-0 p-0 text-decoration-none border-4 rounded-circle menu-button">🚪</button>
+        </form>
+    </div>
 </div>
 <div class="row vh-100-no-footer align-items-start align-items-md-center justify-content-center g-4">
     <div class="py-5 p-lg-0 d-lg-none" id="topSpacer" />
