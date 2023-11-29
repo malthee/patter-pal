@@ -17,5 +17,10 @@ namespace patter_pal.Logic.Interfaces
             string userId,
             string? language = null,
             int? maxDaysAgo = null);
+        Task<PronounciationAnalyticsModel?> GetPronounciationAnalyticsAsync(
+            string userId,
+            string? language = null,
+            string? timePeriod = null,
+            string? timeResolution = null);
     }
 }

@@ -4,6 +4,7 @@
 
     public static class LanguageConstants
     {
+        public const string LanguageAll = "all";
         public const string DefaultLanguage = "en-US";
 
         public static readonly IDictionary<string, string> Languages = new Dictionary<string, string>

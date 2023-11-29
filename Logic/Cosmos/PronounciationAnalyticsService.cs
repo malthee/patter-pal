@@ -4,6 +4,7 @@ using patter_pal.domain.Config;
 using patter_pal.domain.Data;
 using patter_pal.Logic.Interfaces;
 using patter_pal.Models;
+using patter_pal.Util;
 
 namespace patter_pal.Logic.Cosmos
 {
@@ -67,11 +68,128 @@ namespace patter_pal.Logic.Cosmos
                     AccuracyScore = d.AccuracyScore,
                     CompletenessScore = d.CompletenessScore,
                     FluencyScore = d.FluencyScore,
-                    Language = d.Language,
                     PronounciationScore = d.PronounciationScore
                 }).ToList(),
                 BottomTenWords = stats
             };
+        }
+
+        public async Task<PronounciationAnalyticsModel?> GetPronounciationAnalyticsAsync(string userId, string? language = null, string? timePeriod = null, string? timeResolution = null)
+        {
+            timePeriod ??= TimePeriodConstants.DefaultTimePeriod;
+            timeResolution ??= TimeResolutionConstants.DefaultTimeResolution;
+            DateTime daysAgoUtc = TimePeriodToDaysAgoUtc(timePeriod);
+            var pronounciationResults = await _cosmosService.GetSpeechPronounciationResultDataAsync(userId, language, daysAgoUtc);
+            if (pronounciationResults == null)
+            {
+                _logger.LogWarning($"No pronounciation results found for user {userId}");
+                return null;
+            }
+
+            // TODO fix for mispronounciations, more stats
+            List<WordStatistic>? stats = language == null
+                ? null
+                : pronounciationResults
+                    .Where(d => d.Language == language)
+                    .SelectMany(d => d.Words)
+                    .GroupBy(w => w.Text, w => w)
+                    .Select(g => new WordStatistic { Text = g.Key, AverageAccuracy = g.Average(w => w.AccuracyScore) })
+                    .OrderBy(ws => ws.AverageAccuracy)
+                    .Take(_appConfig.PronounciationAnalyticsMaxWordCount)
+                    .ToList();
+
+            // could be "hour", "day", "month"
+            string chartDisplayFormatType = GetChartDisplayFormatType(timeResolution);
+            var groupedPronunciationResults = pronounciationResults
+                .GroupBy(d => new
+                {
+                    Timestamp = GetGroupedTimestamp(d.Timestamp, chartDisplayFormatType)
+                })
+                .Select(group => new SpeechAssessmentData
+                {
+                    Timestamp = group.Key.Timestamp,
+                    AccuracyScore = group.Average(d => d.AccuracyScore),
+                    CompletenessScore = group.Average(d => d.CompletenessScore),
+                    FluencyScore = group.Average(d => d.FluencyScore),
+                    PronounciationScore = group.Average(d => d.PronounciationScore)
+                }).ToList();
+
+            return new PronounciationAnalyticsModel
+            {
+                SpeechAssessments = groupedPronunciationResults,
+                ChartDisplayFormatType = chartDisplayFormatType,
+                ChartDisplayFormat = GetChartDisplayFormat(timeResolution),
+                ChartUnit = GetChartUnit(timeResolution),
+                BottomTenWords = stats
+            };
+        }
+
+        private static DateTime GetGroupedTimestamp(DateTime timestamp, string displayFormatType)
+        {
+            if (displayFormatType == "hour")
+            {
+                return new DateTime(timestamp.Year, timestamp.Month, timestamp.Day, timestamp.Hour, 0, 0);
+            }
+            else if (displayFormatType == "day")
+            {
+                return new DateTime(timestamp.Year, timestamp.Month, timestamp.Day, 0, 0, 0);
+            }
+            else if (displayFormatType == "month")
+            {
+                return new DateTime(timestamp.Year, timestamp.Month, 1, 0, 0, 0);
+            }
+            else
+            {
+                throw new ArgumentException($"unrecognized displayFormatType '{displayFormatType}' used in {nameof(GetGroupedTimestamp)}");
+            }
+        }
+
+        private static string GetChartDisplayFormatType(string timeResolution)
+        {
+            return timeResolution switch
+            {
+                "h" => "hour",
+                "d" => "day",
+                "m" => "month",
+                _ => throw new ArgumentException($"unrecognized time resolution '{timeResolution}' used in {nameof(GetChartDisplayFormatType)}")
+            };
+        }
+
+        private static string GetChartDisplayFormat(string timeResolution)
+        {
+            return timeResolution switch
+            {
+                "h" => "MMM D h A",
+                "d" => "MMM D",
+                "m" => "MMM",
+                _ => throw new ArgumentException($"unrecognized time resolution '{timeResolution}' used in {nameof(GetChartDisplayFormat)}")
+            };
+        }
+
+        private static string GetChartUnit(string timeResolution)
+        {
+            return timeResolution switch
+            {
+                "h" => "hour",
+                "d" => "day",
+                "m" => "month",
+                _ => throw new ArgumentException($"unrecognized time resolution '{timeResolution}' used in {nameof(GetChartDisplayFormat)}")
+            };
+        }
+
+        private static DateTime TimePeriodToDaysAgoUtc(string timePeriod)
+        {            
+            string[] segments = timePeriod.Split('-');
+            int dayMultiplier = segments[0] switch
+            {
+                "d" => 1,
+                "w" => 7,
+                "m" => 31, // I know sketchy
+                "j" => 365,
+                _ => throw new ArgumentException($"unrecognized time period '{segments[0]}' used in {nameof(TimePeriodToDaysAgoUtc)}")
+            };
+            int daysAgo = int.Parse(segments[1]) * dayMultiplier;
+            return DateTime.UtcNow.AddDays(-daysAgo);
         }
     }
 }
