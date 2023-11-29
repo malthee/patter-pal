@@ -43,7 +43,7 @@ namespace patter_pal.dataservice.Azure
                 return true;
             }
             string query = $"SELECT * FROM {_convCN} WHERE {_convCN}.id = @p0 AND {_convCN}.UserId = @p1";
-            List<UserData>? user = await _cosmosServiceContainerConversations.QueryAsync<UserData>(query, userId, "unique-please");
+            List<UserData>? user = await _cosmosServiceContainerConversations.QueryAsync<UserData>(query, userId, "GLOBAL-ID");
             if (user is null || user.Count < 0 || user.First().RequestCount >= _appConfig.MaxAllowedRequests)
             {
                 return false;
@@ -58,7 +58,7 @@ namespace patter_pal.dataservice.Azure
             {
                 return true;
             }
-            return await _cosmosServiceContainerConversations.AddOrUpdateAsync(new UserData { Id = userId, UserId = "unique-please" }, (db, arg) =>
+            return await _cosmosServiceContainerConversations.AddOrUpdateAsync(new UserData { Id = userId, UserId = "GLOBAL-ID" }, (db, arg) =>
             {
                 db.RequestCount += 1;
             });
