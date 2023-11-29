@@ -48,15 +48,17 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/moment"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
-    <script>
+    <script src="js/stats_api.js"></script>
+    <script type="module">
+        import { resolveHostURL } from '/js/helpers.js';
+        import { fetchPronunciationAnalytics } from '/js/stats_api.js';
+
         document.addEventListener('DOMContentLoaded', function () {
             // Define a function to update the chart based on the selected language
-            function updateChart(selectedLanguage, selectedTimePeriod, selectedTimeResolution) {
-                // Make an AJAX request to fetch data
-                var xhr = new XMLHttpRequest();
-                xhr.open('GET', '/@AppConfig.StatsEndpoint' + '?language=' + selectedLanguage + '&timePeriod=' + selectedTimePeriod + '&timeResolution=' + selectedTimeResolution, true);
+            async function updateChart(selectedLanguage, selectedTimePeriod, selectedTimeResolution) {
 
-                // Helper function to group an array of objects by a specified key
+                var responseData = await fetchPronunciationAnalytics(resolveHostURL('@AppConfig.StatsEndpoint'), selectedLanguage, selectedTimePeriod, selectedTimeResolution);
+                console.log(responseData);
                 // Helper function to group an array of objects by a specified key
                 function groupBy(array, key) {
                     return array.reduce((result, obj) => {
@@ -66,117 +68,109 @@
                     }, {});
                 }
 
-                xhr.onload = function () {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        // Parse the JSON response
-                        var responseData = JSON.parse(xhr.responseText);
-                        var responseDataChart = responseData.speechAssessments;
+                // Parse the JSON response
+                var responseDataChart = responseData.speechAssessments;
 
-                        // Convert Timestamp to moment objects
-                        var timestamps = responseDataChart.map(function (entry) {
-                            return moment(entry.timestamp);
-                        });
+                // Convert Timestamp to moment objects
+                var timestamps = responseDataChart.map(function (entry) {
+                    return moment(entry.timestamp);
+                });
 
-                        // Extract data for Chart.js
-                        var data = {
-                            labels: timestamps,
-                            datasets: [
-                                {
-                                    label: 'Accuracy Score',
-                                    data: responseDataChart.map(function (entry) {
-                                        return entry.accuracyScore;
-                                    }),
-                                    borderColor: 'rgba(75, 192, 192, 1)',
-                                    fill: false
-                                },
-                                {
-                                    label: 'Fluency Score',
-                                    data: responseDataChart.map(function (entry) {
-                                        return entry.fluencyScore;
-                                    }),
-                                    borderColor: 'rgba(255, 99, 132, 1)',
-                                    fill: false
-                                },
-                                {
-                                    label: 'Completeness Score',
-                                    data: responseDataChart.map(function (entry) {
-                                        return entry.completenessScore;
-                                    }),
-                                    borderColor: 'rgba(54, 162, 235, 1)',
-                                    fill: false
-                                },
-                                {
-                                    label: 'Pronunciation Score',
-                                    data: responseDataChart.map(function (entry) {
-                                        return entry.pronounciationScore;
-                                    }),
-                                    borderColor: 'rgba(255, 206, 86, 1)',
-                                    fill: false
-                                }
-                            ]
-                        };
-
-                        // Get the chart canvas context
-                        var ctx = document.getElementById('chartContainer').getContext('2d');
-
-                        // Check if the chart already exists, and destroy it before creating a new one
-                        if (window.myChart) {
-                            window.myChart.destroy();
+                // Extract data for Chart.js
+                var data = {
+                    labels: timestamps,
+                    datasets: [
+                        {
+                            label: 'Accuracy Score',
+                            data: responseDataChart.map(function (entry) {
+                                return entry.accuracyScore;
+                            }),
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            fill: false
+                        },
+                        {
+                            label: 'Fluency Score',
+                            data: responseDataChart.map(function (entry) {
+                                return entry.fluencyScore;
+                            }),
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            fill: false
+                        },
+                        {
+                            label: 'Completeness Score',
+                            data: responseDataChart.map(function (entry) {
+                                return entry.completenessScore;
+                            }),
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            fill: false
+                        },
+                        {
+                            label: 'Pronunciation Score',
+                            data: responseDataChart.map(function (entry) {
+                                return entry.pronounciationScore;
+                            }),
+                            borderColor: 'rgba(255, 206, 86, 1)',
+                            fill: false
                         }
-
-                        // Create a new chart
-                        window.myChart = new Chart(ctx, {
-                            type: 'line',
-                            data: data,
-                            options: {
-                                responsive: true,
-                                scales: {
-                                    x: {
-                                        type: 'time',
-                                        time: {
-                                            unit: responseData.chartUnit,
-                                            minUnit: responseData.chartUnit,
-                                            displayFormats: {
-                                                [responseData.chartDisplayFormatType]: responseData.chartDisplayFormat // Format for the day, e.g., Jan 1
-                                            },
-                                            tooltipFormat: 'MMM D h A, YYYY'
-                                        },
-                                        title: {
-                                            display: true,
-                                            text: 'Time'
-                                        },
-                                        ticks: {
-                                            stepSize: 3
-                                        }
-                                    },
-                                    y: {
-                                        title: {
-                                            display: true,
-                                            text: 'Average Scores'
-                                        }
-                                    }
-                                }
-                            }
-                        });
-
-                        // Create a table showing the top 10 words with the lowest average AccuracyScore
-                        var wordsTable = document.getElementById('wordsTable');
-                        wordsTable.innerHTML = ''; // Clear previous content
-                        
-                        // Create table headers
-                        var tableHeader = '<tr><th>Word</th><th>Average Accuracy Score</th></tr>';
-                        wordsTable.innerHTML += tableHeader;
-
-                        // Populate the table
-                        responseData.bottomTenWords.forEach(word => {
-                            var row = '<tr><td>' + word.text + '</td><td>' + word.averageAccuracy.toFixed(2) + '</td></tr>';
-                            wordsTable.innerHTML += row;
-                        });
-
-                    }
+                    ]
                 };
 
-                xhr.send();
+                // Get the chart canvas context
+                var ctx = document.getElementById('chartContainer').getContext('2d');
+
+                // Check if the chart already exists, and destroy it before creating a new one
+                if (window.myChart) {
+                    window.myChart.destroy();
+                }
+
+                // Create a new chart
+                window.myChart = new Chart(ctx, {
+                    type: 'line',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: {
+                                    unit: responseData.chartUnit,
+                                    minUnit: responseData.chartUnit,
+                                    displayFormats: {
+                                        [responseData.chartDisplayFormatType]: responseData.chartDisplayFormat // Format for the day, e.g., Jan 1
+                                    },
+                                    tooltipFormat: 'MMM D h A, YYYY'
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Time'
+                                },
+                                ticks: {
+                                    stepSize: 3
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Average Scores'
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Create a table showing the top 10 words with the lowest average AccuracyScore
+                var wordsTable = document.getElementById('wordsTable');
+                wordsTable.innerHTML = ''; // Clear previous content
+                        
+                // Create table headers
+                var tableHeader = '<tr><th>Word</th><th>Average Accuracy Score</th></tr>';
+                wordsTable.innerHTML += tableHeader;
+
+                // Populate the table
+                responseData.bottomTenWords.forEach(word => {
+                    var row = '<tr><td>' + word.text + '</td><td>' + word.averageAccuracy.toFixed(2) + '</td></tr>';
+                    wordsTable.innerHTML += row;
+                });
             }
 
             // Attach a submit event listener to the form

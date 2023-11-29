@@ -2,14 +2,16 @@
  * Gets the pronunciation analytics for a user
  * @param {string} url
  * @param {string} language
- * @param {int} maxDaysAgo
+ * @param {string} timePeriod
+ * @param {string} timeResolution
  * @returns {PronounciationAnalyticsModel}
  */
-export async function fetchPronunciationAnalytics(url, language = null, maxDaysAgo = null) {
+export async function fetchPronunciationAnalytics(url, language = null, timePeriod = null, timeResolution = null) {
     // Building the query string with optional parameters
     const queryParams = new URLSearchParams();
     if (language) queryParams.append('language', language);
-    if (maxDaysAgo) queryParams.append('maxDaysAgo', maxDaysAgo.toString());
+    if (timePeriod) queryParams.append('timePeriod', timePeriod.toString());
+    if (timeResolution) queryParams.append('timeResolution', timeResolution.toString());
 
     const fullUrl = `${url}?${queryParams.toString()}`;
 
