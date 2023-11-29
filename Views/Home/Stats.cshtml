@@ -45,10 +45,9 @@
 </div>
 
 @section scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/moment"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
-    <script src="js/stats_api.js"></script>
+    <script src="~/lib/chart/chart.js"></script>
+    <script src="~/lib/moment/moment.js"></script>
+    <script src="~/lib/chart/chartjs-adapter-moment.js"></script>
     <script type="module">
         import { resolveHostURL } from '/js/helpers.js';
         import { fetchPronunciationAnalytics } from '/js/stats_api.js';
@@ -57,7 +56,7 @@
             // Define a function to update the chart based on the selected language
             async function updateChart(selectedLanguage, selectedTimePeriod, selectedTimeResolution) {
 
-                var responseData = await fetchPronunciationAnalytics(resolveHostURL('@AppConfig.StatsEndpoint'), selectedLanguage, selectedTimePeriod, selectedTimeResolution);
+                const responseData = await fetchPronunciationAnalytics(resolveHostURL('@AppConfig.StatsEndpoint'), selectedLanguage, selectedTimePeriod, selectedTimeResolution);
                 console.log(responseData);
                 // Helper function to group an array of objects by a specified key
                 function groupBy(array, key) {
@@ -69,15 +68,15 @@
                 }
 
                 // Parse the JSON response
-                var responseDataChart = responseData.speechAssessments;
+                const responseDataChart = responseData.speechAssessments;
 
                 // Convert Timestamp to moment objects
-                var timestamps = responseDataChart.map(function (entry) {
+                const timestamps = responseDataChart.map(function (entry) {
                     return moment(entry.timestamp);
                 });
 
                 // Extract data for Chart.js
-                var data = {
+                const data = {
                     labels: timestamps,
                     datasets: [
                         {
@@ -116,7 +115,7 @@
                 };
 
                 // Get the chart canvas context
-                var ctx = document.getElementById('chartContainer').getContext('2d');
+                const ctx = document.getElementById('chartContainer').getContext('2d');
 
                 // Check if the chart already exists, and destroy it before creating a new one
                 if (window.myChart) {
@@ -159,17 +158,15 @@
                 });
 
                 // Create a table showing the top 10 words with the lowest average AccuracyScore
-                var wordsTable = document.getElementById('wordsTable');
+                const wordsTable = document.getElementById('wordsTable');
                 wordsTable.innerHTML = ''; // Clear previous content
                         
                 // Create table headers
-                var tableHeader = '<tr><th>Word</th><th>Average Accuracy Score</th></tr>';
-                wordsTable.innerHTML += tableHeader;
+                wordsTable.innerHTML += '<tr><th>Word</th><th>Average Accuracy Score</th></tr>';
 
                 // Populate the table
                 responseData.bottomTenWords.forEach(word => {
-                    var row = '<tr><td>' + word.text + '</td><td>' + word.averageAccuracy.toFixed(2) + '</td></tr>';
-                    wordsTable.innerHTML += row;
+                    wordsTable.innerHTML += '<tr><td>' + word.text + '</td><td>' + word.averageAccuracy.toFixed(2) + '</td></tr>';
                 });
             }
 
@@ -178,9 +175,9 @@
                 event.preventDefault(); // Prevent the form from submitting in the traditional way
 
                 // Get the selected language from the dropdown
-                var selectedLanguage = document.getElementById('languageSelect').value;
-                var selectedTimePeriod = document.getElementById('timePeriodSelect').value;
-                var selectedTimeResolution = document.getElementById('timeResolutionSelect').value;
+                const selectedLanguage = document.getElementById('languageSelect').value;
+                const selectedTimePeriod = document.getElementById('timePeriodSelect').value;
+                const selectedTimeResolution = document.getElementById('timeResolutionSelect').value;
 
                 // Call the updateChart function with the selected language
                 updateChart(selectedLanguage, selectedTimePeriod, selectedTimeResolution);
