@@ -29,7 +29,7 @@
         public string CosmosDbConversationContainer { get; set; } = "c1";
         public string CosmosDbConversationPk { get; set; } = "/UserId";
         public string CosmosDbPronounciationResultContainer { get; set; } = "c2";
-        public string CosmodDbPronounciationResultPk { get; set; } = "/UserId";
+        public string CosmosDbPronounciationResultPk { get; set; } = "/UserId";
         /// <summary>
         /// Seperated by ; these are 10-char codes in the fommat of abcde-abcde that allow "special login access"  
         /// </summary>
@@ -39,6 +39,7 @@
         // --- Transfer settings --- //
         public int HttpTimeout { get; set; } = 20; // Seconds
         public int WebSocketKeepAlive { get; set; } = 1; // Minutes
+        public int MaxAllowedRequests { get; set; } = 10;
 
         // --- OpenAI API --- //
         public string OpenAiEndpoint { get; set; } = "https://api.openai.com/v1/chat/completions";
