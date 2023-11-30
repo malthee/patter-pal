@@ -182,7 +182,6 @@
         const BubbleEmojies = ["😀", "😁", "😃", "😄", "🙂", "🧐"];
 
         let currentConversationId = getQueryParameters().conversationId;
-        const cachedAudioUrls = new Map(); // TODO
         let audioRecStreamer = null;
         let audioPlayer = null;
         let socket = null;
@@ -339,7 +338,7 @@
 
             audioPlayer = new Audio(audioUrl);
             updateConversationUi();
-            //cachedAudioUrls.set(currentChatId, audioUrl);
+            // Could cache audio here
 
             audioPlayer.onplay = () => {
                 audioPlayer._emojiInterval = setInterval(() => updateBubbleEmoji(currentAnswerOutputBubble), 500);
@@ -422,6 +421,7 @@
             micButton.classList.toggle('active', isRecording);
             // Can cancel recording and audio, but not start new one when server is responding or socket is still connecting
             micButton.disabled = socketConnecting || isResponding && !audioPlayer || !initialLoadDone;
+            micButton.innerHTML = audioPlayer ? '✋' : '🎙';
 
             if (socketOpen) {
                 if (isRecording) {
@@ -514,15 +514,18 @@
         // --- Event Handlers --- //
 
         micButton.onclick = () => {
+            if (audioPlayer) {
+                // Cancel playback
+                destroyAudioPlayer();
+                return;
+            }
+
             if (audioRecStreamer || socket?.readyState == WebSocket.OPEN) {
                 // Cancel recording
                 stopAudioStream();
                 updateConversationUi();
                 return;
             }
-
-            // Cancel audio playback
-            destroyAudioPlayer();
 
             let connectionUrl = resolveHostWebSocketURL('@AppConfig.ConversationWebSocket' + '/' + languageSelect.value); // add /currentConversationId when not null
             if (currentConversationId) connectionUrl += '/' + currentConversationId;
