@@ -33,7 +33,7 @@
         /// <summary>
         /// Seperated by ; these are 10-char codes in the fommat of abcde-abcde that allow "special login access"  
         /// </summary>
-        public string ValidSpecialCodes { get; set; } = "while-devin;remov-iprod";
+        public string ValidSpecialCodes { get; set; } = "";
         public int PronounciationAnalyticsMaxWordCount { get; set; } = 10;
 
         // --- Transfer settings --- //
@@ -49,7 +49,6 @@
         public double OpenAiTopP { get; set; } = 1;
         public double OpenAiFrequencyPenalty { get; set; } = 0.2;
         public double OpenAiPresencePenalty { get; set; } = 0.2;
-        // TODO improve, may also tune parameters above?
         public string OpenAiSystemHelperPrompt { get; set; } = @"As a 30-year-old language teacher from {0}, with expertise in {1}, engage in a student-teacher dialogue. 
 Remember, you're a real person, not an AI. Respond within 50 words, correcting their language use. 
 Briefly comment on their pronunciation aspects (accuracy, fluency, prosody, mispronunciations) without using specific metrics. 

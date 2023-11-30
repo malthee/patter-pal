@@ -23,8 +23,8 @@ AAS -> OCS: Request with custom prompt, chat history and pronunciation assessmen
 OCS -> AAS: Streams answer
 AAS -> User: Streams user-adjusted answer
 
-note left of OCS: Streaming answer finished
-AAS -> ASS: Requests speech synthesis of full answer
+note over OCS: Streaming answer finished
+AAS -> ASS: Requests speech synthesis for full answer
 ASS -> AAS: Returns audio result
 AAS -> User: Passes audio result
 AAS -> User: Closes the connection
