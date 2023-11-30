@@ -22,6 +22,10 @@ function showToast(message, type = 'info') {
 }
 
 // Enable tooltips everywhere
-[].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).forEach((tooltipTriggerEl) => {
-    new bootstrap.Tooltip(tooltipTriggerEl)
-});
+function enableTooltips() {
+    [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).forEach((tooltipTriggerEl) => {
+        new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+}
+
+enableTooltips(); // Enable tooltips on page load

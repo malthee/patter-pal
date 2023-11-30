@@ -13,7 +13,7 @@
             //{"w-2", "Last 2 Weeks"},
             //{"m-1", "This Month"},
             {"d-30", "Last 30 Days"},
-            {"all", "All"},
+            {"j-1", "Last Year"},
         };
 
     }
