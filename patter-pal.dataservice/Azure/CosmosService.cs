@@ -8,6 +8,7 @@ namespace patter_pal.dataservice.Azure
 {
     public class CosmosService
     {
+        private readonly ILogger<CosmosService> _logger;
         private readonly AppConfig _appConfig;
         private readonly CosmosClient _cosmosClient;
         private readonly CosmosServiceContainer<ConversationData> _cosmosServiceContainerConversations;
@@ -16,12 +17,13 @@ namespace patter_pal.dataservice.Azure
         private readonly string _pronouncCN;
 
         public CosmosService(
+            ILogger<CosmosService> logger,
             ILogger<CosmosServiceContainer<ConversationData>> loggerConversation,
             ILogger<CosmosServiceContainer<SpeechPronounciationResultData>> loggerSpeech,
             AppConfig appConfig)
         {
+            _logger = logger;
             // If this app grows this should be split up into more DAOs
-            // These vars are safe as they come from env variables
             _appConfig = appConfig;
             _cosmosClient = new CosmosClient(appConfig.DbConnectionString);
             _convCN = appConfig.CosmosDbConversationContainer;
@@ -42,14 +44,17 @@ namespace patter_pal.dataservice.Azure
             {
                 return true;
             }
+
+            // Kind of hacky way but saves us from creating another container, so we save usage also in the chat container
             string query = $"SELECT * FROM {_convCN} WHERE {_convCN}.id = @p0 AND {_convCN}.UserId = @p1";
-            List<UserData>? user = await _cosmosServiceContainerConversations.QueryAsync<UserData>(query, userId, "GLOBAL-ID");
-            if (user is null || user.Count < 0 || user.First().RequestCount >= _appConfig.MaxAllowedRequests)
+            List<UserData>? user = await _cosmosServiceContainerConversations.QueryAsync<UserData>(query, userId, AppConfig.UsageId);
+            if (user == null)
             {
-                return false;
+                _logger.LogWarning($"Could not check user request count for user {userId}");
+                return false; // Could not check
             }
 
-            return true;
+            return user.Count < 1 || user.First().RequestCount <= _appConfig.MaxAllowedRequests;
         }
         
         public async Task<bool> IncrementUserRequestCounterAsync(string userId)
@@ -58,7 +63,7 @@ namespace patter_pal.dataservice.Azure
             {
                 return true;
             }
-            return await _cosmosServiceContainerConversations.AddOrUpdateAsync(new UserData { Id = userId, UserId = "GLOBAL-ID" }, (db, arg) =>
+            return await _cosmosServiceContainerConversations.AddOrUpdateAsync(new UserData { Id = userId, UserId = AppConfig.UsageId }, (db, arg) =>
             {
                 db.RequestCount += 1;
             });

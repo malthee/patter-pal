@@ -7,10 +7,10 @@ namespace patter_pal.Logic.Cosmos
 {
     public class ConversationService : IConversationService
     {
-        private readonly ILogger<HomeController> _logger;
+        private readonly ILogger<ConversationService> _logger;
         private readonly CosmosService _cosmosService;
 
-        public ConversationService(ILogger<HomeController> logger, CosmosService cosmosService)
+        public ConversationService(ILogger<ConversationService> logger, CosmosService cosmosService)
         {
             _logger = logger;
             _cosmosService = cosmosService;

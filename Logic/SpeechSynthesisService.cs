@@ -10,10 +10,10 @@ namespace patter_pal.Logic
 {
     public class SpeechSynthesisService
     {
-        private readonly ILogger<SpeechPronounciationService> _logger;
+        private readonly ILogger<SpeechSynthesisService> _logger;
         private readonly AppConfig _appConfig;
 
-        public SpeechSynthesisService(ILogger<SpeechPronounciationService> logger, AppConfig appConfig)
+        public SpeechSynthesisService(ILogger<SpeechSynthesisService> logger, AppConfig appConfig)
         {
             _logger = logger;
             _appConfig = appConfig;

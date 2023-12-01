@@ -10,6 +10,7 @@
         public const string StatsEndpoint = "Stats";
         // These properties are not required to be set in the environment variables
         public readonly string[] NonRequiredProperties = { nameof(ValidSpecialCodes) };
+        public const string UsageId = "GLOBAL-ID";
 
         // --- Audio Recording: If one of the following values is changed, the other values must be changed accordingly --- //
         public const int TargetSampleRate = 16000; // Required by Speech SDK
@@ -39,7 +40,7 @@
         // --- Transfer settings --- //
         public int HttpTimeout { get; set; } = 20; // Seconds
         public int WebSocketKeepAlive { get; set; } = 1; // Minutes
-        public int MaxAllowedRequests { get; set; } = 10;
+        public int MaxAllowedRequests { get; set; } = 10; // Chats per trial user
 
         // --- OpenAI API --- //
         public string OpenAiEndpoint { get; set; } = "https://api.openai.com/v1/chat/completions";

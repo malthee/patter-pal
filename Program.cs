@@ -44,6 +44,7 @@ static void ConfigureServices(WebApplicationBuilder builder, AppConfig appConfig
     builder.Services.AddScoped<IConversationService, ConversationService>();
     builder.Services.AddScoped<IUserService, UserService>();
     builder.Services.AddScoped<IPronounciationAnalyticsService, PronounciationAnalyticsService>();
+    builder.Services.AddScoped<IUsageService, UsageService>();
     
     // Logic services
     builder.Services.AddScoped<AuthService>();
