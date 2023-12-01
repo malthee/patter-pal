@@ -6,42 +6,51 @@
     ViewData["Title"] = "Stats";
 }
 
-<h1>POGGERS STATS!</h1>
+<div class="fixed-top pe-none text-end mt-4 me-4 ms-4 d-flex justify-content-start">
+    <a asp-controller="Home" asp-action="App" title="Home" class="pe-auto"><img alt="PatterPal Logo" src="~/img/logo.svg" height="84" width="84" class="align-top" /></a>
+</div>
 
-<canvas id="chartContainer" style="width: 80%; height: 50%; max-height: 70%;"></canvas>
-<h3>Worst Words by Language:</h3>
-<table id="wordsTable"></table>
-
-<!-- filter by language -->
-<div class="max-height-500 col-12 col-lg-3 text-center align-self-end align-self-lg-center">
-    <form id="languageFilterForm">
-        <div id="languageSelectContainer" class="pt-3 fade-in">
-            <h2>Filters:</h2>
-            <h3>Language:</h3>
-            <select class="form-select text-center" id="languageSelect" title="Which language you want to filter">
-                <option value="@LanguageConstants.LanguageAll" selected="true">All Languages</option>
-                @foreach (var language in LanguageConstants.Languages)
-                {
-                    <option value="@language.Key">@language.Value</option>
-                }
-            </select>
-            <h3>Time Periods:</h3>
-            <select class="form-select text-center" id="timePeriodSelect" title="Which language you want to filter">
-                @foreach (var timePeriod in TimePeriodConstants.TimePeriods)
-                {
-                    <option value="@timePeriod.Key" selected="@(timePeriod.Key==TimePeriodConstants.DefaultTimePeriod)">@timePeriod.Value</option>
-                }
-            </select>
-            <h3>Time Resolution:</h3>
-            <select class="form-select text-center" id="timeResolutionSelect" title="Which language you want to filter">
-                @foreach (var timeResolution in TimeResolutionConstants.TimeResolutions)
-                {
-                    <option value="@timeResolution.Key" selected="@(timeResolution.Key==TimeResolutionConstants.DefaultTimeResolution)">@timeResolution.Value</option>
-                }
-            </select>
-            <button type="submit" class="btn btn-primary mt-3">Apply Filter</button>
+<div class="container-sm d-flex flex-column vh-100-no-footer align-items-center">
+    <div class="py-5" id="topSpacer"></div>
+    <div id="chartWrapper" class="bg-light rounded-3 p-3 mt-4">
+        <canvas id="chartContainer"></canvas>
+    </div>
+    <form id="languageFilterForm" class="mt-2">
+        <div class="row g-3 align-items-end justify-content-center">
+            <div class="col-auto">
+                <label for="languageSelect" class="form-label">Language:</label>
+                <select class="form-select" id="languageSelect" title="Which language you want to filter">
+                    <option value="@LanguageConstants.LanguageAll" selected="true">All Languages</option>
+                    @foreach (var language in LanguageConstants.Languages)
+                    {
+                        <option value="@language.Key">@language.Value</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <label for="timePeriodSelect" class="form-label">Time Period:</label>
+                <select class="form-select" id="timePeriodSelect" title="Which time period you want to filter">
+                    @foreach (var timePeriod in TimePeriodConstants.TimePeriods)
+                    {
+                        <option value="@timePeriod.Key" selected="@(timePeriod.Key==TimePeriodConstants.DefaultTimePeriod)">@timePeriod.Value</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <label for="timeResolutionSelect" class="form-label">Time Resolution:</label>
+                <select class="form-select" id="timeResolutionSelect" title="Which time resolution you want to filter">
+                    @foreach (var timeResolution in TimeResolutionConstants.TimeResolutions)
+                    {
+                        <option value="@timeResolution.Key" selected="@(timeResolution.Key==TimeResolutionConstants.DefaultTimeResolution)">@timeResolution.Value</option>
+                    }
+                </select>
+            </div>
         </div>
     </form>
+    <div class="pt-4 pt-lg-5 w-100 text-center">
+        <h3 class="mb-0">Word Stats</h3>
+        <div id="wordStatsContainer" class="d-flex flex-wrap gap-1 justify-content-center"></div>
+    </div>
 </div>
 
 @section scripts {
@@ -49,139 +58,190 @@
     <script src="~/lib/moment/moment.js"></script>
     <script src="~/lib/chart/chartjs-adapter-moment.js"></script>
     <script type="module">
-        import { resolveHostURL } from '/js/helpers.js';
+        import { resolveHostURL, getQueryParameters, updateQueryParameters, htmlEscape } from '/js/helpers.js';
         import { fetchPronunciationAnalytics } from '/js/stats_api.js';
 
-        document.addEventListener('DOMContentLoaded', function () {
-            // Define a function to update the chart based on the selected language
-            async function updateChart(selectedLanguage, selectedTimePeriod, selectedTimeResolution) {
+        const languageSelect = document.getElementById('languageSelect');
+        const timePeriodSelect = document.getElementById('timePeriodSelect');
+        const timeResolutionSelect = document.getElementById('timeResolutionSelect');
 
-                const responseData = await fetchPronunciationAnalytics(resolveHostURL('@AppConfig.StatsEndpoint'), selectedLanguage, selectedTimePeriod, selectedTimeResolution);
-                console.log(responseData);
-                // Helper function to group an array of objects by a specified key
-                function groupBy(array, key) {
-                    return array.reduce((result, obj) => {
-                        var keyValue = obj[key];
-                        result[keyValue] = (result[keyValue] || []).concat(obj);
-                        return result;
-                    }, {});
-                }
+        let currentLanguage = getQueryParameters().language ?? '@LanguageConstants.LanguageAll';
+        let currentTimePeriod = getQueryParameters().timePeriod ?? '@TimePeriodConstants.DefaultTimePeriod';
+        let currentTimeResolution = getQueryParameters().timeResolution ?? '@TimeResolutionConstants.DefaultTimeResolution';
+        // Update if passed by query parameters
+        languageSelect.value = currentLanguage;
+        timePeriodSelect.value = currentTimePeriod;
+        timeResolutionSelect.value = currentTimeResolution;
 
-                // Parse the JSON response
-                const responseDataChart = responseData.speechAssessments;
+        fetchAndUpdateUi();
 
-                // Convert Timestamp to moment objects
-                const timestamps = responseDataChart.map(function (entry) {
-                    return moment(entry.timestamp);
-                });
+        // Create a chart based on the selected language
+        function updateChart(responseData) {
+            // Helper function to group an array of objects by a specified key
+            function groupBy(array, key) {
+                return array.reduce((result, obj) => {
+                    var keyValue = obj[key];
+                    result[keyValue] = (result[keyValue] || []).concat(obj);
+                    return result;
+                }, {});
+            }
 
-                // Extract data for Chart.js
-                const data = {
-                    labels: timestamps,
-                    datasets: [
-                        {
-                            label: 'Accuracy Score',
-                            data: responseDataChart.map(function (entry) {
-                                return entry.accuracyScore;
-                            }),
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            fill: false
-                        },
-                        {
-                            label: 'Fluency Score',
-                            data: responseDataChart.map(function (entry) {
-                                return entry.fluencyScore;
-                            }),
-                            borderColor: 'rgba(255, 99, 132, 1)',
-                            fill: false
-                        },
-                        {
-                            label: 'Completeness Score',
-                            data: responseDataChart.map(function (entry) {
-                                return entry.completenessScore;
-                            }),
-                            borderColor: 'rgba(54, 162, 235, 1)',
-                            fill: false
-                        },
-                        {
-                            label: 'Pronunciation Score',
-                            data: responseDataChart.map(function (entry) {
-                                return entry.pronounciationScore;
-                            }),
-                            borderColor: 'rgba(255, 206, 86, 1)',
-                            fill: false
-                        }
-                    ]
-                };
+            // Parse the JSON response
+            const responseDataChart = responseData.speechAssessments;
+            // If empty show a message
+            if (!responseDataChart || responseDataChart.length === 0) {
+                showToast('No data available for the selected language and time period.', 'warning');
+            }
 
-                // Get the chart canvas context
-                const ctx = document.getElementById('chartContainer').getContext('2d');
+            // Convert Timestamp to moment objects
+            const timestamps = responseDataChart.map(function (entry) {
+                return moment(entry.timestamp);
+            });
 
-                // Check if the chart already exists, and destroy it before creating a new one
-                if (window.myChart) {
-                    window.myChart.destroy();
-                }
+            // Extract data for Chart.js
+            const data = {
+                labels: timestamps,
+                datasets: [
+                    {
+                        label: 'Accuracy Score',
+                        data: responseDataChart.map(function (entry) {
+                            return entry.accuracyScore;
+                        }),
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        fill: false
+                    },
+                    {
+                        label: 'Fluency Score',
+                        data: responseDataChart.map(function (entry) {
+                            return entry.fluencyScore;
+                        }),
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        fill: false
+                    },
+                    {
+                        label: 'Completeness Score',
+                        data: responseDataChart.map(function (entry) {
+                            return entry.completenessScore;
+                        }),
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        fill: false
+                    },
+                    {
+                        label: 'Pronunciation Score',
+                        data: responseDataChart.map(function (entry) {
+                            return entry.pronounciationScore;
+                        }),
+                        borderColor: 'rgba(255, 206, 86, 1)',
+                        fill: false
+                    }
+                ]
+            };
 
-                // Create a new chart
-                window.myChart = new Chart(ctx, {
-                    type: 'line',
-                    data: data,
-                    options: {
-                        responsive: true,
-                        scales: {
-                            x: {
-                                type: 'time',
-                                time: {
-                                    unit: responseData.chartUnit,
-                                    minUnit: responseData.chartUnit,
-                                    displayFormats: {
-                                        [responseData.chartDisplayFormatType]: responseData.chartDisplayFormat // Format for the day, e.g., Jan 1
-                                    },
-                                    tooltipFormat: 'MMM D h A, YYYY'
+            // Get the chart canvas context
+            const ctx = document.getElementById('chartContainer').getContext('2d');
+
+            // Check if the chart already exists, and destroy it before creating a new one
+            if (window.myChart) {
+                window.myChart.destroy();
+            }
+
+            // Create a new chart
+            window.myChart = new Chart(ctx, {
+                type: 'line',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: responseData.chartUnit,
+                                minUnit: responseData.chartUnit,
+                                displayFormats: {
+                                    [responseData.chartDisplayFormatType]: responseData.chartDisplayFormat, // Format for the day, e.g., Jan 1
+                                    [responseData.chartUnit]: 'DD. MMM HH:mm'
                                 },
-                                title: {
-                                    display: true,
-                                    text: 'Time'
-                                },
-                                ticks: {
-                                    stepSize: 3
-                                }
+                                tooltipFormat: 'DD. MMM HH:mm'
                             },
-                            y: {
-                                title: {
-                                    display: true,
-                                    text: 'Average Scores'
-                                }
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            },
+                            ticks: {
+                                stepSize: 5
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Average Scores'
                             }
                         }
                     }
-                });
+                }
+            });
+        }
 
-                // Create a table showing the top 10 words with the lowest average AccuracyScore
-                const wordsTable = document.getElementById('wordsTable');
-                wordsTable.innerHTML = ''; // Clear previous content
-                        
-                // Create table headers
-                wordsTable.innerHTML += '<tr><th>Word</th><th>Average Accuracy Score</th></tr>';
-
-                // Populate the table
-                responseData.bottomTenWords.forEach(word => {
-                    wordsTable.innerHTML += '<tr><td>' + word.text + '</td><td>' + word.averageAccuracy.toFixed(2) + '</td></tr>';
-                });
+        function updateWords(responseData) {
+            function templateWord(word, accuracy, size = 'h3', color = 'primary') {
+                return `<${size}><span data-bs-toggle="tooltip" data-bs-placement="top" title="Accuracy: ${accuracy.toFixed(2)}" class="badge rounded-pill bg-${color}">${htmlEscape(word)}</span></${size}>`;
             }
 
-            // Attach a submit event listener to the form
-            document.getElementById('languageFilterForm').addEventListener('submit', function (event) {
-                event.preventDefault(); // Prevent the form from submitting in the traditional way
+            const wordStats = document.getElementById('wordStatsContainer');
+            const bottomTenAcc = responseData.bottomTenWords;
+            if (!bottomTenAcc || bottomTenAcc.length === 0) {
+                wordStats.innerHTML = '<p class="py-1">No data for this language or timespan</p>';
+                return;
+            }
 
-                // Get the selected language from the dropdown
-                const selectedLanguage = document.getElementById('languageSelect').value;
-                const selectedTimePeriod = document.getElementById('timePeriodSelect').value;
-                const selectedTimeResolution = document.getElementById('timeResolutionSelect').value;
-
-                // Call the updateChart function with the selected language
-                updateChart(selectedLanguage, selectedTimePeriod, selectedTimeResolution);
+            // Populate the table
+            wordStats.innerHTML = '<span class="w-100 py-1">worst 10 by accuracy</span>';
+            responseData.bottomTenWords.forEach(word => {
+                const color = word.averageAccuracy > 90 ? 'success' :
+                    word.averageAccuracy > 70 ? 'primary' :
+                        word.averageAccuracy > 40 ? 'warning' :
+                            'danger';
+                wordStats.innerHTML += templateWord(word.text, word.averageAccuracy, 'h3', color);
             });
-        });
+            enableTooltips();
+        }
+
+        async function fetchAndUpdateUi() {
+            languageSelect.disabled = true;
+            timePeriodSelect.disabled = true;
+            timeResolutionSelect.disabled = true;
+
+            try {
+                const responseData = await fetchPronunciationAnalytics(resolveHostURL('@AppConfig.StatsEndpoint'), currentLanguage, currentTimePeriod, currentTimeResolution);
+                updateWords(responseData);
+                updateChart(responseData);
+            } catch (e) {
+                showToast(e.message, 'danger')
+            }
+
+            languageSelect.disabled = false;
+            timePeriodSelect.disabled = false;
+            timeResolutionSelect.disabled = false;
+        }
+
+        async function updateSelection() {
+            currentLanguage = languageSelect.value;
+            currentTimePeriod = timePeriodSelect.value;
+            currentTimeResolution = timeResolutionSelect.value;
+
+            updateQueryParameters({
+                language: currentLanguage,
+                timePeriod: currentTimePeriod,
+                timeResolution: currentTimeResolution
+            });
+
+            await fetchAndUpdateUi();
+        }
+
+        // Listen to change events in the select elements and update ui
+        languageSelect.addEventListener('change', updateSelection);
+        timePeriodSelect.addEventListener('change', updateSelection);
+        timeResolutionSelect.addEventListener('change', updateSelection);
     </script>
 }

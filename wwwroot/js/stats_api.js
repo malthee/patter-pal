@@ -9,11 +9,12 @@
 export async function fetchPronunciationAnalytics(url, language = null, timePeriod = null, timeResolution = null) {
     // Building the query string with optional parameters
     const queryParams = new URLSearchParams();
-    if (language) queryParams.append('language', language);
+    if (language) queryParams.append('language', language.toString());
     if (timePeriod) queryParams.append('timePeriod', timePeriod.toString());
     if (timeResolution) queryParams.append('timeResolution', timeResolution.toString());
 
     const fullUrl = `${url}?${queryParams.toString()}`;
+    console.log('fullUrl: ', fullUrl);
 
     const response = await fetch(fullUrl, {
         method: 'GET',

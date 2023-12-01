@@ -38,42 +38,6 @@ namespace patter_pal.Logic.Cosmos
             return _cosmosService.AddSpeechPronounciationResultDataAsync(userId, speechResultData);
         }
 
-        public async Task<PronounciationAnalyticsModel?> GetPronounciationAnalyticsAsync(string userId, string? language = null, int? maxDaysAgo = null)
-        {
-            DateTime? daysAgoUtc = maxDaysAgo != null ? DateTime.UtcNow.AddDays(-maxDaysAgo.Value) : null;
-            var pronounciationResults = await _cosmosService.GetSpeechPronounciationResultDataAsync(userId, language, daysAgoUtc);
-            if(pronounciationResults == null)
-            {
-                _logger.LogWarning($"No pronounciation results found for user {userId}");
-                return null;
-            }
-
-            // TODO fix for mispronounciations, more stats
-            List<WordStatistic>? stats = language == null
-                ? null
-                : pronounciationResults
-                    .Where(d => d.Language == language)
-                    .SelectMany(d => d.Words)
-                    .GroupBy(w => w.Text, w => w)
-                    .Select(g => new WordStatistic { Text = g.Key, AverageAccuracy = g.Average(w => w.AccuracyScore) })
-                    .OrderBy(ws => ws.AverageAccuracy)
-                    .Take(_appConfig.PronounciationAnalyticsMaxWordCount)
-                    .ToList();
-
-            return new PronounciationAnalyticsModel
-            {
-                SpeechAssessments = pronounciationResults.Select(d => new SpeechAssessmentData
-                {
-                    Timestamp = d.Timestamp,
-                    AccuracyScore = d.AccuracyScore,
-                    CompletenessScore = d.CompletenessScore,
-                    FluencyScore = d.FluencyScore,
-                    PronounciationScore = d.PronounciationScore
-                }).ToList(),
-                BottomTenWords = stats
-            };
-        }
-
         public async Task<PronounciationAnalyticsModel?> GetPronounciationAnalyticsAsync(string userId, string? language = null, string? timePeriod = null, string? timeResolution = null)
         {
             timePeriod ??= TimePeriodConstants.DefaultTimePeriod;
@@ -86,11 +50,9 @@ namespace patter_pal.Logic.Cosmos
                 return null;
             }
 
-            // TODO fix for mispronounciations, more stats
-            List<WordStatistic>? stats = language == null
-                ? null
-                : pronounciationResults
-                    .Where(d => d.Language == language)
+            List<WordStatistic>? stats = pronounciationResults
+            // Get words of any language when language is not specified, check if this makes sense otherwise ui is empty 
+                    .Where(d => language == null || d.Language == language)
                     .SelectMany(d => d.Words)
                     .GroupBy(w => w.Text, w => w)
                     .Select(g => new WordStatistic { Text = g.Key, AverageAccuracy = g.Average(w => w.AccuracyScore) })
@@ -178,7 +140,7 @@ namespace patter_pal.Logic.Cosmos
         }
 
         private static DateTime TimePeriodToDaysAgoUtc(string timePeriod)
-        {            
+        {
             string[] segments = timePeriod.Split('-');
             int dayMultiplier = segments[0] switch
             {

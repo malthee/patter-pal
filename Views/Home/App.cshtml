@@ -9,7 +9,7 @@
     <a asp-controller="Home" asp-action="App" title="Home" class="pe-auto"><img alt="PatterPal Logo" src="~/img/logo.svg" height="84" width="84" class="align-top" /></a>
     <div class="pe-auto">
         <button type="button" title="Toggle History" class="btn btn-light align-top text-decoration-none border-4 rounded-circle m-0 p-0 menu-button" data-bs-toggle="collapse" data-bs-target="#leftMenu" aria-expanded="false" aria-controls="leftMenu">📃</button>
-        <a asp-controller="Home" asp-action="Stats" title="Show Stats" class="text-decoration-none border-4 rounded-circle bg-light menu-button">📊</a> <!-- TODO stats -->
+        <a asp-controller="Home" asp-action="Stats" title="Show Stats" class="text-decoration-none border-4 rounded-circle bg-light menu-button">📊</a>
         <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post" class="align-top d-inline-block">
             @Html.AntiForgeryToken()
             <button type="submit" title="Logout" class="btn btn-light m-0 p-0 text-decoration-none border-4 rounded-circle menu-button">🚪</button>
@@ -17,138 +17,138 @@
     </div>
 </div>
 <div class="row vh-100-no-footer align-items-start align-items-md-center justify-content-center g-4">
-    <div class="py-5 p-lg-0 d-lg-none" id="topSpacer" />
-</div>
-<!-- Left column for list menu -->
-<div class="max-height-500 col-12 col-lg-3 collapse overflow-auto align-self-end align-self-lg-center" id="leftMenu">
-    <div class="list-group">
-        <button type="button" id="newConversationButton" title="Start new conversation" class="conversation-entry list-group-item list-group-item-action d-flex justify-content-between">
-            <span>New Conversation</span>
-            <span>➕</span>
+    <div class="py-5 p-lg-0 d-lg-none" id="topSpacer"></div>
+    <!-- Left column for list menu -->
+    <div class="max-height-500 col-12 col-lg-3 collapse overflow-auto align-self-end align-self-lg-center" id="leftMenu">
+        <div class="list-group">
+            <button type="button" id="newConversationButton" title="Start new conversation" class="conversation-entry list-group-item list-group-item-action d-flex justify-content-between">
+                <span>New Conversation</span>
+                <span>➕</span>
+            </button>
+            <div id="conversationContainer" class="list-group">
+                <div id="conversationTemplate" class="conversation-entry list-group-item list-group-item-action d-none d-flex justify-content-between">
+                    <div class="conversation-title text-truncate"></div>
+                    <div class="conversation-actions d-none d-flex ps-3">
+                        <button type="button" title="Edit" class="edit-conversation-button btn p-0">✏️</button>
+                        <button type="button" title="Delete" class="delete-conversation-button btn p-0">🗑</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Middle column for microphone, language selector, and state label -->
+    <div class="max-height-500 col-12 col-lg-3 text-center align-self-end align-self-lg-center">
+        <button id="micButton" type="button" title="Start Recording" class="btn btn-light rounded-circle border-4">
+            <span>🎙</span>
         </button>
-        <div id="conversationContainer" class="list-group">
-            <div id="conversationTemplate" class="conversation-entry list-group-item list-group-item-action d-none d-flex justify-content-between">
-                <div class="conversation-title text-truncate"></div>
-                <div class="conversation-actions d-none d-flex ps-3">
-                    <button type="button" title="Edit" class="edit-conversation-button btn p-0">✏️</button>
-                    <button type="button" title="Delete" class="delete-conversation-button btn p-0">🗑</button>
+        <div id="languageSelectContainer" class="pt-3 fade-in">
+            <select class="form-select text-center" id="languageSelect" title="Which language you want to speak">
+                @foreach (var language in LanguageConstants.Languages)
+                {
+                    <option value="@language.Key" selected="@(language.Key==LanguageConstants.DefaultLanguage)">@language.Value</option>
+                }
+            </select>
+        </div>
+        <p id="stateLabel" class="text-muted text-center mb-3">Ready to connect...</p>
+        <!-- Pronounciation charts -->
+        <div id="pronounciationProgress" class="d-flex fade-out justify-content-between mb-3">
+            <div class="me-2 d-flex flex-column justify-content-between text-start">
+                <span data-bs-toggle="tooltip" data-bs-placement="left" title="Pronunciation accuracy assesses how closely speech phonemes match native pronunciation, aggregating word and text scores from phoneme-level accuracy.">Accuracy</span>
+                <span data-bs-toggle="tooltip" data-bs-placement="left" title="Fluency measures how well the speech aligns with a native speaker's usage, particularly in terms of pauses between words.">Fluency</span>
+                <span data-bs-toggle="tooltip" data-bs-placement="left" title="Prosody evaluates the naturalness of speech, encompassing stress, intonation, speed, and rhythm">Prosody</span>
+            </div>
+            <div class="flex-grow-1">
+                <div class="mb-1">
+                    <div class="progress">
+                        <div id="accuracyBar" class="progress-bar bg-primary ps-1" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
                 </div>
+                <div class="mb-1">
+                    <div class="progress">
+                        <div id="fluencyBar" class="progress-bar bg-primary ps-1" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="progress">
+                        <div id="prosodyBar" class="progress-bar bg-primary ps-1" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex flex-column ms-2 text-end justify-content-between">
+                <span id="accuracyScore"></span>
+                <span id="fluencyScore"></span>
+                <span id="prosodyScore"></span>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Middle column for microphone, language selector, and state label -->
-<div class="max-height-500 col-12 col-lg-3 text-center align-self-end align-self-lg-center">
-    <button id="micButton" type="button" title="Start Recording" class="btn btn-light rounded-circle border-4">
-        <span>🎙</span>
-    </button>
-    <div id="languageSelectContainer" class="pt-3 fade-in">
-        <select class="form-select text-center" id="languageSelect" title="Which language you want to speak">
-            @foreach (var language in LanguageConstants.Languages)
-            {
-                <option value="@language.Key" selected="@(language.Key==LanguageConstants.DefaultLanguage)">@language.Value</option>
-            }
-        </select>
-    </div>
-    <p id="stateLabel" class="text-muted text-center mb-3">Ready to connect...</p>
-    <!-- Pronounciation charts -->
-    <div id="pronounciationProgress" class="d-flex fade-out justify-content-between mb-3">
-        <div class="me-2 d-flex flex-column justify-content-between text-start">
-            <span data-bs-toggle="tooltip" data-bs-placement="left" title="Pronunciation accuracy assesses how closely speech phonemes match native pronunciation, aggregating word and text scores from phoneme-level accuracy.">Accuracy</span>
-            <span data-bs-toggle="tooltip" data-bs-placement="left" title="Fluency measures how well the speech aligns with a native speaker's usage, particularly in terms of pauses between words.">Fluency</span>
-            <span data-bs-toggle="tooltip" data-bs-placement="left" title="Prosody evaluates the naturalness of speech, encompassing stress, intonation, speed, and rhythm">Prosody</span>
+    <!-- Right column for text bubbles -->
+    <div id="textBubbleContainer" class="max-height-500 col-lg-5 d-flex align-self-start align-self-lg-center justify-content-center flex-wrap-reverse flex-lg-wrap overflow-auto">
+        <!-- Bubble templates -->
+        <div id="leftBubbleTemplate" class="chat-bubble d-none d-flex w-100 align-items-center mb-3">
+            <span class="speaker-img left">😁</span>
+            <div class="bg-primary text-white rounded-3 ms-2 p-2">
+                <p class="mb-0 text-break bubble-text"></p>
+            </div>
         </div>
-        <div class="flex-grow-1">
-            <div class="mb-1">
-                <div class="progress">
-                    <div id="accuracyBar" class="progress-bar bg-primary ps-1" aria-valuemin="0" aria-valuemax="100"></div>
+        <div id="rightBubbleTemplate" class="chat-bubble d-none d-flex w-100 align-items-center justify-content-end mb-3">
+            <div class="bg-light rounded-3 me-2 p-2">
+                <p class="mb-0 text-break bubble-text"></p>
+            </div>
+            <span class="speaker-img right">😀</span>
+        </div>
+        <!-- Only show when no convo -->
+        <div class="bubble-intro d-flex w-100 align-items-center mb-3">
+            <span class="speaker-img left">😁</span>
+            <div class="bg-primary text-white rounded-3 ms-2 p-2">
+                <p class="mb-0 text-break bubble-text">Start talking with Patter Pal by pressing the 🎙 button. You can ask questions, talk about your day and switch language any time!</p>
+            </div>
+        </div>
+        <div class="bubble-intro d-flex w-100 align-items-center justify-content-end mb-3">
+            <div class="bg-light rounded-3 me-2 p-2">
+                <p class="bubble-intro mb-0 text-break bubble-text">Want to practice your language skills? Ask me about common topics like family, food, living and current events. I can also give you suggestions if you ask me.</p>
+            </div>
+            <span class="speaker-img right">😀</span>
+        </div>
+    </div>
+    <!-- Delete Modal -->
+    <div id="deleteConfirmModal" class="modal fade" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this conversation? This cannot be undone.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button id="deleteConfirmButton" type="button" class="btn btn-danger">Confirm</button>
                 </div>
             </div>
-            <div class="mb-1">
-                <div class="progress">
-                    <div id="fluencyBar" class="progress-bar bg-primary ps-1" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+    </div>
+    <!-- Modify Modal -->
+    <div id="modifyModal" class="modal fade" tabindex="-1" aria-labelledby="modifyModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modifyModalLabel">Modify Conversation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-            </div>
-            <div>
-                <div class="progress">
-                    <div id="prosodyBar" class="progress-bar bg-primary ps-1" aria-valuemin="0" aria-valuemax="100"></div>
+                <div class="modal-body">
+                    <!-- Text field with title -->
+                    <div class="mb-3">
+                        <label for="modifyConversationTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="modifyConversationTitle" maxlength="50" required>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="d-flex flex-column ms-2 text-end justify-content-between">
-            <span id="accuracyScore"></span>
-            <span id="fluencyScore"></span>
-            <span id="prosodyScore"></span>
-        </div>
-    </div>
-</div>
-
-<!-- Right column for text bubbles -->
-<div id="textBubbleContainer" class="max-height-500 col-lg-5 d-flex align-self-start align-self-lg-center justify-content-center flex-wrap-reverse flex-lg-wrap overflow-auto">
-    <!-- Bubble templates -->
-    <div id="leftBubbleTemplate" class="chat-bubble d-none d-flex w-100 align-items-center mb-3">
-        <span class="speaker-img left">😁</span>
-        <div class="bg-primary text-white rounded-3 ms-2 p-2">
-            <p class="mb-0 text-break bubble-text"></p>
-        </div>
-    </div>
-    <div id="rightBubbleTemplate" class="chat-bubble d-none d-flex w-100 align-items-center justify-content-end mb-3">
-        <div class="bg-light rounded-3 me-2 p-2">
-            <p class="mb-0 text-break bubble-text"></p>
-        </div>
-        <span class="speaker-img right">😀</span>
-    </div>
-    <!-- Only show when no convo -->
-    <div class="bubble-intro d-flex w-100 align-items-center mb-3">
-        <span class="speaker-img left">😁</span>
-        <div class="bg-primary text-white rounded-3 ms-2 p-2">
-            <p class="mb-0 text-break bubble-text">Start talking with Patter Pal by pressing the 🎙 button. You can ask questions, talk about your day and switch language any time!</p>
-        </div>
-    </div>
-    <div class="bubble-intro d-flex w-100 align-items-center justify-content-end mb-3">
-        <div class="bg-light rounded-3 me-2 p-2">
-            <p class="bubble-intro mb-0 text-break bubble-text">Want to practice your language skills? Ask me about common topics like family, food, living and current events. I can also give you suggestions if you ask me.</p>
-        </div>
-        <span class="speaker-img right">😀</span>
-    </div>
-</div>
-<!-- Delete Modal -->
-<div id="deleteConfirmModal" class="modal fade" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                Are you sure you want to delete this conversation? This cannot be undone.
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button id="deleteConfirmButton" type="button" class="btn btn-danger">Confirm</button>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- Modify Modal -->
-<div id="modifyModal" class="modal fade" tabindex="-1" aria-labelledby="modifyModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modifyModalLabel">Modify Conversation</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <!-- Text field with title -->
-                <div class="mb-3">
-                    <label for="modifyConversationTitle" class="form-label">Title</label>
-                    <input type="text" class="form-control" id="modifyConversationTitle" maxlength="50" required>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button id="modifyConfirmButton" type="button" class="btn btn-warning">Confirm</button>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button id="modifyConfirmButton" type="button" class="btn btn-warning">Confirm</button>
             </div>
         </div>
     </div>
@@ -182,7 +182,6 @@
         const BubbleEmojies = ["😀", "😁", "😃", "😄", "🙂", "🧐"];
 
         let currentConversationId = getQueryParameters().conversationId;
-        const cachedAudioUrls = new Map(); // TODO
         let audioRecStreamer = null;
         let audioPlayer = null;
         let socket = null;
@@ -191,7 +190,7 @@
         let currentAnswerOutputBubble = null;
         let initialLoadDone = false;
 
-        // Load data initially todo select this initial one
+        // Load data initially
         initLoadConversations();
 
         // --- Conversation and history --- //
@@ -339,7 +338,7 @@
 
             audioPlayer = new Audio(audioUrl);
             updateConversationUi();
-            //cachedAudioUrls.set(currentChatId, audioUrl);
+            // Could cache audio here
 
             audioPlayer.onplay = () => {
                 audioPlayer._emojiInterval = setInterval(() => updateBubbleEmoji(currentAnswerOutputBubble), 500);
@@ -422,6 +421,7 @@
             micButton.classList.toggle('active', isRecording);
             // Can cancel recording and audio, but not start new one when server is responding or socket is still connecting
             micButton.disabled = socketConnecting || isResponding && !audioPlayer || !initialLoadDone;
+            micButton.innerHTML = audioPlayer ? '✋' : '🎙';
 
             if (socketOpen) {
                 if (isRecording) {
@@ -514,15 +514,18 @@
         // --- Event Handlers --- //
 
         micButton.onclick = () => {
+            if (audioPlayer) {
+                // Cancel playback
+                destroyAudioPlayer();
+                return;
+            }
+
             if (audioRecStreamer || socket?.readyState == WebSocket.OPEN) {
                 // Cancel recording
                 stopAudioStream();
                 updateConversationUi();
                 return;
             }
-
-            // Cancel audio playback
-            destroyAudioPlayer();
 
             let connectionUrl = resolveHostWebSocketURL('@AppConfig.ConversationWebSocket' + '/' + languageSelect.value); // add /currentConversationId when not null
             if (currentConversationId) connectionUrl += '/' + currentConversationId;

@@ -4,10 +4,10 @@
     {
         public List<SpeechAssessmentData> SpeechAssessments { get; set; } = new();
         public List<WordStatistic>? BottomTenWords { get; set; }
+        // Could add more stats in the future like words most mispronounced, etc.
         public string ChartUnit { get; set; } = string.Empty;
         public string ChartDisplayFormat { get; set; } = string.Empty;
         public string ChartDisplayFormatType { get; set; } = string.Empty;
-        // TODO more word analytics like mispronounced words, insertions, deletions, etc.
     }
 
     public class SpeechAssessmentData

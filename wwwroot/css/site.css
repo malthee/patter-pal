@@ -120,6 +120,13 @@ body {
     height: 1.5rem;
 }
 
+
+#chartWrapper {
+    position: relative;
+    width: 100%;
+    height: max(50vh, 300px);
+}
+
 /* Subtle pulsing effect */
 @keyframes micPulseAnimation {
     0%, 100% {
@@ -130,6 +137,7 @@ body {
         transform: scale(1.05); /* Less expansion for a smoother effect */
     }
 }
+
 /* Softer color change effect */
 @keyframes micColorChangeAnimation {
     0%, 100% {

@@ -1,7 +1,7 @@
 @startuml
 class ConversationData {
     +Guid Id <<PK>>
-    +String Email <<FK>>
+    +String UserId <<FK>>
     +String Title
 }
 
@@ -20,7 +20,7 @@ class WordData {
 
 class SpeechPronounciationResultData {
     +Guid Id <<PK>>
-    +String Email <<FK>>
+    +String UserId <<FK>>
     +String Text
     +String Language
     +Double AccuracyScore
@@ -29,6 +29,13 @@ class SpeechPronounciationResultData {
     +Double PronunciationScore
 }
 
+class UserData {
+    +Guid Id <<PK>>
+    +String UserId <<FK>>
+    +Int RequestCount
+}
+
+note bottom of UserData:RequestCount -> Currently trial users\n are limited to a specific amount of chats.
 ConversationData "1" *-- "0..*" ChatData
 SpeechPronounciationResultData "1" *-- "0..*" WordData
 @enduml

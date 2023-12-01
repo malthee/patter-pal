@@ -16,11 +16,13 @@ namespace patter_pal.Controllers
     {
         private readonly IPronounciationAnalyticsService _pronounciationService;
         private readonly AuthService _authService;
+        private readonly ILogger<StatsController> _logger;
 
-        public StatsController(IPronounciationAnalyticsService pronounciationService, AuthService authService)
+        public StatsController(IPronounciationAnalyticsService pronounciationService, AuthService authService, ILogger<StatsController> logger)
         {
             _pronounciationService = pronounciationService;
             _authService = authService;
+            _logger = logger;
         }
 
 
@@ -28,6 +30,8 @@ namespace patter_pal.Controllers
         public async Task<ActionResult<PronounciationAnalyticsModel>> GetAnalytics(string? language = null, string? timePeriod = null, string? timeResolution = null)
         {
             string userId = (await _authService.GetUserId())!;
+            _logger.LogDebug($"Getting analytics for user ${userId}");
+
             if (language is not null && language == LanguageConstants.LanguageAll)
             {
                 language = null;
