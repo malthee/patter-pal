@@ -7,9 +7,9 @@ namespace patter_pal.Logic.Cosmos
     public class UserService : IUserService
     {
         private readonly CosmosService _cosmosService;
-        private readonly ILogger<HomeController> _logger;
+        private readonly ILogger<UserService> _logger;
 
-        public UserService(CosmosService cosmosService, ILogger<HomeController> logger)
+        public UserService(CosmosService cosmosService, ILogger<UserService> logger)
         {
             _cosmosService = cosmosService;
             _logger = logger;

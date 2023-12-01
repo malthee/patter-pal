@@ -2,7 +2,7 @@
 {
     public static class TimePeriodConstants
     {
-        public const string DefaultTimePeriod = "d-3";
+        public const string DefaultTimePeriod = "d-1";
 
         public static readonly IDictionary<string, string> TimePeriods = new Dictionary<string, string>
         {

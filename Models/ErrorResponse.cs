@@ -14,6 +14,7 @@
             NoAnswerFound = 6,
             SynthesisServiceError = 7,
             DatabaseError = 8,
+            UsageLimitReached = 9,
             // todo..
         }
 

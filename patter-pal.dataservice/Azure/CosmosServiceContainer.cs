@@ -39,7 +39,8 @@ namespace patter_pal.dataservice.Azure
             return _cosmosClient.GetContainer(DatabaseName, ContainerName);
         }
 
-        public async Task<bool> AddOrUpdateAsync(T data, Action<T, T>? modificationFunc = null)
+        public async Task<bool> AddOrUpdateAsync<T>(T data, Action<T, T>? modificationFunc = null)
+            where T : ContainerItem
         {
             Container container = GetContainer();
 
@@ -136,7 +137,8 @@ namespace patter_pal.dataservice.Azure
             return false;
         }
 
-        public async Task<List<T>?> QueryAsync(string query, params object[] ps)
+        public async Task<List<T>?> QueryAsync<T>(string query, params object[] ps)
+            where T : ContainerItem
         {
             Container container = GetContainer();
 

@@ -44,6 +44,7 @@ static void ConfigureServices(WebApplicationBuilder builder, AppConfig appConfig
     builder.Services.AddScoped<IConversationService, ConversationService>();
     builder.Services.AddScoped<IUserService, UserService>();
     builder.Services.AddScoped<IPronounciationAnalyticsService, PronounciationAnalyticsService>();
+    builder.Services.AddScoped<IUsageService, UsageService>();
     
     // Logic services
     builder.Services.AddScoped<AuthService>();
@@ -105,46 +106,6 @@ using (var scope = app.Services.CreateScope())
 {
     CosmosService cosmosService = scope.ServiceProvider.GetService<CosmosService>()!;
     await cosmosService.InitializeService();
-    // until #17 is done, use dummy conversation id
-
-    /*
-    IConversationService conversationService = scope.ServiceProvider.GetService<IConversationService>()!;
-    string userId = "id";
-    string userId2 = "aaaaa";
-
-    // create new conversation
-    var cd = ConversationData.Create(userId, "Test");
-    await conversationService.AddConversationAsync(userId, cd);
-    var cd2 = ConversationData.Create(userId2, "Test");
-    await conversationService.AddConversationAsync(userId2, cd2);
-
-    // talk + response
-    await conversationService.AddChatAsync(userId, cd.Id, new ChatData(true, "request", "German"));
-    await conversationService.AddChatAsync(userId, cd.Id, new ChatData(false, "response", "German"));
-
-    // close app
-
-    // reopen app, login, load all conversations (shallow, does not include messages)
-    var cds = await conversationService.GetConversationsAsync(userId);
-
-    // click on conversation => explicitly load
-    var cd_full = await conversationService.GetConversationAndChatsAsync(userId, cds.First().Id);
-
-    // talk + response + save
-    await conversationService.AddChatAsync(userId, cd_full.Id, new ChatData(true, "request", "English"));
-    await conversationService.AddChatAsync(userId, cd_full.Id, new ChatData(false, "response", "English"));
-
-    // reopen app, login, load all conversations
-    cds = await conversationService.GetConversationsAsync(userId);
-
-    // click on conversation => explicitly load
-    cd_full = await conversationService.GetConversationAndChatsAsync(userId, cds.First().Id);
-    await conversationService.UpdateConversationAsync(userId, cd_full);
-
-    // delete conversation
-    await conversationService.DeleteConversationAsync(userId, cd_full.Id);
-    //await cosmosService.DeleteAllUserData(userId);
-    */
 
 }
 

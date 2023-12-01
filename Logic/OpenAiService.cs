@@ -19,11 +19,11 @@ namespace patter_pal.Logic
         private const int MIN_WORDS_USER_INPUT = 14; // Will only reduce the user input if it is longer than this
         private static readonly char[] WORD_SEPERATORS = { ' ', '\r', '\n' };
 
-        private readonly ILogger<HomeController> _logger;
+        private readonly ILogger<OpenAiService> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly AppConfig _appConfig;
 
-        public OpenAiService(ILogger<HomeController> logger, IHttpClientFactory httpClientFactory, AppConfig appConfig)
+        public OpenAiService(ILogger<OpenAiService> logger, IHttpClientFactory httpClientFactory, AppConfig appConfig)
         {
             _logger = logger;
             _httpClientFactory = httpClientFactory;
