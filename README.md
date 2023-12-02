@@ -44,7 +44,7 @@ Visit [https://patter-pal.azurewebsites.net](https://patter-pal.azurewebsites.ne
 Login:
 - either use the Special Access Code we have provided or
 - or connect your Gmail-Account with the application
-  - Patter-Pal only requests the scope necessary for reading the email address from the token. Patter-Pal does not request any private user data
+  - PatterPal only requests the scope necessary for reading the email address from the token. PatterPal does not request any private user data
 
 ![image](https://github.com/malthee/patter-pal/assets/58472456/72e03155-2a4a-4627-830f-2afcb681846a)
 
@@ -77,11 +77,11 @@ You can also rename or delete individual conversations here.
 
 After you had a few conversations with your language teacher, you can visit the stats page by clicking the 📊 button on the top right.
 Here you can see how your accuracy has changed over time or what words were least accurately pronounced.
-You can filter your metrics by *language* and also adjust the analysed time period and time resolution (playing around with these values is a good idea if you've been Patter-Pal for an extended period of time).
+You can filter your metrics by *language* and also adjust the analysed time period and time resolution (playing around with these values is a good idea if you've been PatterPal for an extended period of time).
 
 ![image](https://github.com/malthee/patter-pal/assets/58472456/d366a003-8851-492f-bbc7-8ba0d801066c)
 
-You can get back to the application by clicking the Patter-Pal icon on the top left.
+You can get back to the application by clicking the PatterPal icon on the top left.
 When you are done you can use the 🚪 to logout again.
 
 ## Diagrams
