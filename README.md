@@ -16,6 +16,7 @@ PatterPal is a web application that allows you to practice your speaking skills 
 - Azure App Services
   - ASP.NET Core Web App
 - Azure Cosmos DB
+- Google OAuth 2.0
   
 <p>&nbsp;</p>
 <div align="center">
