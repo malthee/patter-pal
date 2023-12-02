@@ -43,3 +43,20 @@ We are based in Austria and currently studying Software Engineering at the [Univ
 
 ### WebSocket Communication Workflow
 ![WebSocket Communication](docs/img/communication.svg)
+
+## Privacy Policy
+
+### Information Collection
+- Email-Based Accounts: If you register for an account using your email, we collect and store your email address. This is used for account verification.
+- Conversations and Chats: We record and store the details of your conversations and chats with PatterPal. This includes both your input and the responses from PatterPal. This is required so you can access past conversations anytime.
+- Pronunciation Analysis: When speaking with PatterPal, we collect and analyze data on your pronunciation accuracy and the mistakes made during spoken text exercises. This information is used to provide personalized feedback and improve your learning experience.
+
+### How We Use Your Information
+The information we collect is used to:
+- Provide, operate, and maintain our services.
+- Improve, personalize, and expand our services.
+- Understand and analyze how you use our services.
+- Develop new products, services, features, and functionality.
+- Communicate with you for service-related purposes.
+
+You can delete your data we stored in our [Privacy Page](https://patter-pal.azurewebsites.net/Home/Privacy)
