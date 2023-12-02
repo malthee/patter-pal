@@ -88,7 +88,11 @@ namespace patter_pal.Logic.Cosmos
 
         private static DateTime GetGroupedTimestamp(DateTime timestamp, string displayFormatType)
         {
-            if (displayFormatType == "hour")
+            if (displayFormatType == "minute")
+            {
+                return new DateTime(timestamp.Year, timestamp.Month, timestamp.Day, timestamp.Hour, timestamp.Minute, 0);
+            }
+            else if (displayFormatType == "hour")
             {
                 return new DateTime(timestamp.Year, timestamp.Month, timestamp.Day, timestamp.Hour, 0, 0);
             }
@@ -110,6 +114,7 @@ namespace patter_pal.Logic.Cosmos
         {
             return timeResolution switch
             {
+                "i" => "minute",
                 "h" => "hour",
                 "d" => "day",
                 "m" => "month",
@@ -121,8 +126,9 @@ namespace patter_pal.Logic.Cosmos
         {
             return timeResolution switch
             {
-                "h" => "MMM D h A",
-                "d" => "MMM D",
+                "i" => "HH:mm",
+                "h" => "DD.HH:mm",
+                "d" => "DD. MMM",
                 "m" => "MMM",
                 _ => throw new ArgumentException($"unrecognized time resolution '{timeResolution}' used in {nameof(GetChartDisplayFormat)}")
             };
@@ -132,6 +138,7 @@ namespace patter_pal.Logic.Cosmos
         {
             return timeResolution switch
             {
+                "i" => "minute",
                 "h" => "hour",
                 "d" => "day",
                 "m" => "month",

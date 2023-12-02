@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using patter_pal.domain.Config;
+using patter_pal.domain.Util;
+using patter_pal.Util;
 using System.Security.Claims;
 
 namespace patter_pal.Logic
@@ -46,7 +48,7 @@ namespace patter_pal.Logic
         public async Task<bool> TrySignInWithSpecialCode(string code)
         {
             HttpContext? httpContext = _httpContextAccessor.HttpContext;
-            if (httpContext == null || !IsValidSpecialCode(code))
+            if (httpContext == null || !AuthHelper.IsValidSpecialCode(_appConfig, code))
             {
                 return false;
             }
@@ -64,11 +66,6 @@ namespace patter_pal.Logic
 
             await httpContext.SignInAsync("Cookies", principal);
             return true;
-        }
-
-        private bool IsValidSpecialCode(string code)
-        {
-            return _appConfig.ValidSpecialCodes.Split(";").Any(c => c == code);
         }
     }
 }

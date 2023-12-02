@@ -10,6 +10,7 @@
         public const string StatsEndpoint = "Stats";
         // These properties are not required to be set in the environment variables
         public readonly string[] NonRequiredProperties = { nameof(ValidSpecialCodes) };
+        public const string UsageId = "GLOBAL-ID";
 
         // --- Audio Recording: If one of the following values is changed, the other values must be changed accordingly --- //
         public const int TargetSampleRate = 16000; // Required by Speech SDK
@@ -29,7 +30,7 @@
         public string CosmosDbConversationContainer { get; set; } = "c1";
         public string CosmosDbConversationPk { get; set; } = "/UserId";
         public string CosmosDbPronounciationResultContainer { get; set; } = "c2";
-        public string CosmodDbPronounciationResultPk { get; set; } = "/UserId";
+        public string CosmosDbPronounciationResultPk { get; set; } = "/UserId";
         /// <summary>
         /// Seperated by ; these are 10-char codes in the fommat of abcde-abcde that allow "special login access"  
         /// </summary>
@@ -39,6 +40,7 @@
         // --- Transfer settings --- //
         public int HttpTimeout { get; set; } = 20; // Seconds
         public int WebSocketKeepAlive { get; set; } = 1; // Minutes
+        public int MaxAllowedRequests { get; set; } = 10; // Chats per trial user
 
         // --- OpenAI API --- //
         public string OpenAiEndpoint { get; set; } = "https://api.openai.com/v1/chat/completions";

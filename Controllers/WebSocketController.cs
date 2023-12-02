@@ -18,21 +18,23 @@ namespace patter_pal.Controllers
     /// </summary>
     public class WebSocketController : ControllerBase
     {
-        private readonly ILogger<HomeController> _logger;
+        private readonly ILogger<WebSocketController> _logger;
         private readonly SpeechPronounciationService _speechPronounciationService;
         private readonly OpenAiService _openAiService;
         private readonly SpeechSynthesisService _speechSynthesisService;
         private readonly AuthService _authService;
         private readonly IPronounciationAnalyticsService _pronounciationAnalyticsService;
         private readonly IConversationService _conversationService;
+        private readonly IUsageService _usageService;
 
-        public WebSocketController(ILogger<HomeController> logger,
+        public WebSocketController(ILogger<WebSocketController> logger,
             SpeechPronounciationService speechPronounciationService,
             OpenAiService openAiService,
             SpeechSynthesisService speechSynthesisService,
             AuthService authService,
             IPronounciationAnalyticsService pronounciationAnalyticsService,
-            IConversationService conversationService)
+            IConversationService conversationService,
+            IUsageService usageService)
         {
             _logger = logger;
             _speechPronounciationService = speechPronounciationService;
@@ -41,6 +43,7 @@ namespace patter_pal.Controllers
             _authService = authService;
             _pronounciationAnalyticsService = pronounciationAnalyticsService;
             _conversationService = conversationService;
+            _usageService = usageService;
         }
 
         /// <summary>
@@ -59,9 +62,24 @@ namespace patter_pal.Controllers
             using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
             _logger.LogDebug($"WebSocket started with language: {language}, conversationId: {conversationId}");
 
+            // Check if user has requests remaining
+            if (!await _usageService.HasUserRequestsRemainingAsync(userId!))
+            {
+                _logger.LogInformation($"User {userId} has no requests remaining, refusing request.");
+                var error = new ErrorResponse("Sorry you have reached your chat limit. We have to limit requests to save costs as this is a student project. If you liked PatterPal please give us some feedback and we might give you a special access code!",
+                                       ErrorResponse.ErrorCode.UsageLimitReached);
+                await WebSocketHelper.SendTextWhenOpen(webSocket,
+                    JsonSerializer.Serialize(new SocketResult<ErrorResponse>(error, SocketResultType.Error))
+                );
+                return;
+            }
+
             // Azure Speech
             if (!ShouldContinueConversationFlow(webSocket)) return;
             var speechResult = await HandleSpeechRecognition(webSocket, language, userId!, conversationId);
+
+            // Track requests
+            await _usageService.IncrementUserRequestCounterAsync(userId!);
 
             // OpenAi
             if (!ShouldContinueConversationFlow(webSocket) || speechResult == null) return;

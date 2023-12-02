@@ -380,7 +380,6 @@
                     case (SocketResultType.SpeechResult):
                         stopAudioStream();
                         const data = result.Data;
-                        console.log(data);
                         setBubbleText(currentSpeechOutputBubble)(escapeAndMarkMistakesInText(data));
                         enableTooltips(currentSpeechOutputBubble);
                         metricsProgress.showMetrics(data.AccuracyScore, data.FluencyScore, data.PronunciationScore);
@@ -561,7 +560,7 @@
                 updateConversationUi();
             };
             socket.onclose = (event) => {
-                console.log(`WebSocket closed: ${event.reason}`);
+                console.log(`WebSocket closed ${event.reason}`);
                 // Closed, no need to do graceful shutdown
                 stopAudioStream(false);
             };

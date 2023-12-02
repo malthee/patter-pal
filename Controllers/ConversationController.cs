@@ -14,11 +14,11 @@ namespace patter_pal.Controllers
     [Authorize(Policy = "LoggedInPolicy")]
     public class ConversationController : ControllerBase
     {
-        private readonly ILogger<HomeController> _logger;
+        private readonly ILogger<ConversationController> _logger;
         private readonly IConversationService _conversationService;
         private readonly AuthService _authService;
 
-        public ConversationController(ILogger<HomeController> logger, IConversationService conversationService, AuthService authService)
+        public ConversationController(ILogger<ConversationController> logger, IConversationService conversationService, AuthService authService)
         {
             _logger = logger;
             _conversationService = conversationService;
