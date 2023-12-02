@@ -59,4 +59,4 @@ The information we collect is used to:
 - Develop new products, services, features, and functionality.
 - Communicate with you for service-related purposes.
 
-You can delete your data we stored in our [Privacy Page](https://patter-pal.azurewebsites.net/Home/Privacy)
+You can delete your data we stored in our [Privacy Page](https://patter-pal.azurewebsites.net/Home/Privacy).
