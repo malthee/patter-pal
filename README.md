@@ -106,4 +106,4 @@ The information we collect is used to:
 - Develop new products, services, features, and functionality.
 - Communicate with you for service-related purposes.
 
-You can delete your *Conversation, Chat and Pronunciation Analysis* data in our [Privacy Page](https://patter-pal.azurewebsites.net/Home/Privacy).
+You can delete your *Conversation, Chat and Pronunciation Analysis* data on our [Privacy Page](https://patter-pal.azurewebsites.net/Home/Privacy).
