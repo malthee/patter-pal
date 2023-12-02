@@ -82,7 +82,7 @@ You can filter your metrics by *language* and also adjust the analysed time peri
 ![image](https://github.com/malthee/patter-pal/assets/58472456/d366a003-8851-492f-bbc7-8ba0d801066c)
 
 You can get back to the application by clicking the PatterPal icon on the top left.
-When you are done you can use the 🚪 to logout again.
+When you are done you can use the 🚪 button on the top right to log out.
 
 ## Diagrams
 ### Data Layer Diagram
