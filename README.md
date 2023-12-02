@@ -47,20 +47,19 @@ Login:
 - or connect your Gmail-Account with the application
   - PatterPal only requests the scope necessary for reading the email address from the token. PatterPal does not request any private user data
 
-![image](https://github.com/malthee/patter-pal/assets/58472456/72e03155-2a4a-4627-830f-2afcb681846a)
+<img height="500" src="https://github.com/malthee/patter-pal/assets/58472456/72e03155-2a4a-4627-830f-2afcb681846a" alt="PatterPal Login"/>
 
 Select a language of your choice and click the round button that resembles a microphone.
 
-![image](https://github.com/malthee/patter-pal/assets/58472456/ea3a090a-c29c-4bb5-a946-46a83ffce1d2)
+<img height="500" src="https://github.com/malthee/patter-pal/assets/58472456/ea3a090a-c29c-4bb5-a946-46a83ffce1d2" alt="PatterPal Language Select"/>
 
 If this is your first visit (or depending on your browser settings), you will need to allow the website to use your microphone.
-
-![image](https://github.com/malthee/patter-pal/assets/58472456/5118ca73-dc6a-4de2-a55d-db6a7a2f96c5)
+![Microphone Permissions](https://github.com/malthee/patter-pal/assets/58472456/5118ca73-dc6a-4de2-a55d-db6a7a2f96c5)
 
 Click the 🎙️ button and start talking. A few seconds after speaking, your spoken text will gradually show up.
 The recording will stop after some moments of silence or if you manually click the 🎙️ button again.
 
-![image](https://github.com/malthee/patter-pal/assets/58472456/6f671f3d-bf90-429a-9bbb-376b34b7070d)
+<img height="500" src="https://github.com/malthee/patter-pal/assets/58472456/6f671f3d-bf90-429a-9bbb-376b34b7070d" alt="PatterPal Start Recording"/>
 
 A few seconds after the recording has halted, your language teacher will gradually respond.
 After the response has finished generating, the response will be read to you via Speech-to-Text.
@@ -68,19 +67,19 @@ Below the language selelection box, you can the metrics regarding your spoken wo
 If you want to stop the Speech-to-Text output, you can click the ✋ button.
 Also keep in mind that you can change the langauge of the conversation whenever you want.
 
-![image](https://github.com/malthee/patter-pal/assets/58472456/97092df2-adba-4e39-b335-5472bce52c80)
+<img height="500" src="https://github.com/malthee/patter-pal/assets/58472456/97092df2-adba-4e39-b335-5472bce52c80" alt="PatterPal Responding"/>
 
 If you want to your conversation history, you can press the 📃 button on the top right of the screen.
 It toggles the your conversation history and allows you to start a new conversation
 You can also rename or delete individual conversations here.
 
-![image](https://github.com/malthee/patter-pal/assets/58472456/1eb30964-cd7c-43e4-8fc5-cc2fd9060c83)
+<img height="500" src="https://github.com/malthee/patter-pal/assets/58472456/1eb30964-cd7c-43e4-8fc5-cc2fd9060c83" alt="PatterPal Conversation History"/>
 
 After you had a few conversations with your language teacher, you can visit the stats page by clicking the 📊 button on the top right.
 Here you can see how your accuracy has changed over time or what words were least accurately pronounced.
 You can filter your metrics by *language* and also adjust the analysed time period and time resolution (playing around with these values is a good idea if you've been PatterPal for an extended period of time).
 
-![image](https://github.com/malthee/patter-pal/assets/58472456/d366a003-8851-492f-bbc7-8ba0d801066c)
+<img height="500" src="https://github.com/malthee/patter-pal/assets/58472456/d366a003-8851-492f-bbc7-8ba0d801066c" alt="PatterPal Stats"/>
 
 You can get back to the application by clicking the PatterPal icon on the top left.
 When you are done you can use the 🚪 button on the top right to log out.
