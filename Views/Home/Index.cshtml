@@ -3,9 +3,21 @@
 @using patter_pal.Logic;
 @{
     ViewData["Title"] = "Home Page";
+    var accessCodeParam = Context.Request.Query["accessCode"].FirstOrDefault();
+    bool accessCodePresent = !string.IsNullOrWhiteSpace(accessCodeParam);
 }
 
 <div class="container-sm d-flex flex-column vh-100-no-footer align-items-center justify-content-center">
+    @if (accessCodePresent)
+    {
+        <div class="text-center alert alert-info alert-dismissible fade show" role="alert">
+            Hi there! You've been invited to try out PatterPal with a special access code.
+            <br />If you are a judge you can view the <a href="https://github.com/malthee/patter-pal/tree/docs#testing-instructions" title="Testing Instructions">testing instructions in the GitHub to get started.</a>
+            <br />Press <i>Login</i> to start. Have fun testing!
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" />
+        </div>
+    }
+
     <div class="text-center bg-light rounded-3 me-2 p-2">
         <h1><img alt="PatterPal Logo" src="~/img/logo.svg" height="50" width="50" />&nbsp;PatterPal&nbsp;</h1>
         <h3>Your personal language teacher</h3>
@@ -20,13 +32,14 @@
 
     <div class="text-center login-button mt-3">
         <!-- Collapsible for Access Code -->
-        <button class="btn btn-primary d-flex justify-content-center w-100" type="button" data-bs-toggle="collapse" data-bs-target="#accessCodeCollapse" aria-expanded="false" aria-controls="accessCodeCollapse">
+        <button id="specialAccessButton" class="btn btn-primary d-flex justify-content-center w-100" type="button" data-bs-toggle="collapse" data-bs-target="#accessCodeCollapse" aria-expanded="false" aria-controls="accessCodeCollapse">
             Use Special Access Code
         </button>
-        <div class="collapse" id="accessCodeCollapse">
+        <div class="@(accessCodePresent ? "show" : "collapse")"
+            id="accessCodeCollapse">
             <div class="card card-body">
                 <form id="accessForm" asp-controller="Auth" asp-action="SpecialAccess" method="post">
-                    <input type="text" class="form-control" placeholder="Format: aaaaa-aaaaa" name="code" pattern="^[A-Za-z1-9]{5}-[A-Za-z1-9]{5}$" required>
+                    <input id="accessCodeInput" value="@(accessCodePresent ? accessCodeParam : "")" type="text" class="form-control" placeholder="Format: aaaaa-aaaaa" name="code" pattern="^[A-Za-z1-9]{5}-[A-Za-z1-9]{5}$" required>
                     <button class="btn btn-success mt-2">Login</button>
                 </form>
             </div>

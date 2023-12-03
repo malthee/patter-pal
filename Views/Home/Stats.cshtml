@@ -6,8 +6,14 @@
     ViewData["Title"] = "Stats";
 }
 
-<div class="fixed-top pe-none text-end mt-4 me-4 ms-4 d-flex justify-content-start">
+<div class="fixed-top pe-none text-end mt-4 me-4 ms-4 d-flex justify-content-between">
     <a asp-controller="Home" asp-action="App" title="Home" class="pe-auto"><img alt="PatterPal Logo" src="~/img/logo.svg" height="84" width="84" class="align-top" /></a>
+    <div class="pe-auto">
+        <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post" class="align-top d-inline-block">
+            @Html.AntiForgeryToken()
+            <button type="submit" title="Logout" class="btn btn-light m-0 p-0 text-decoration-none border-4 rounded-circle menu-button">🚪</button>
+        </form>
+    </div>
 </div>
 
 <div class="container-sm d-flex flex-column vh-100-no-footer align-items-center">
