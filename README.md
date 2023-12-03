@@ -87,7 +87,15 @@ You can get back to the application by clicking the PatterPal icon on the top le
 When you are done you can use the 🚪 button on the top right to log out.
 
 ## Diagrams
+### Azure Tech Stack
+<img height="500" src="https://github.com/malthee/patter-pal/assets/18032233/04613ab0-afda-4120-95c1-308b205cbc79" alt="Azure Tech Stack"/>
+
+*The OpenAi interface is not yet used from Azure (instead platform.openai.com) as it is not currently available for a students' subscription*
+
 ### Data Layer Diagram
+
+
+
 ![Data Layer Diagram](docs/img/datalayer.svg)
 
 ### WebSocket Communication Workflow
