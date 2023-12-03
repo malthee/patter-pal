@@ -4,12 +4,29 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PatterPal - @ViewData["Title"]</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <meta name="description" content="@AppConfig.AppDescription">
+
+    <!-- Facebook Meta Tags -->
+    <meta property="og:url" content="@AppConfig.AppUrl">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="PatterPal">
+    <meta property="og:description" content="@AppConfig.AppDescription">
+    <meta property="og:image" content="~/img/og-img.jpg">
+
+    <!-- Twitter Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta property="twitter:domain" content="@AppConfig.AppDomain">
+    <meta property="twitter:url" content="@AppConfig.AppUrl">
+    <meta name="twitter:title" content="PatterPal">
+    <meta name="twitter:description" content="@AppConfig.AppDescription">
+    <meta name="twitter:image" content="~/img/og-img.jpg">
+
     <link rel="apple-touch-icon" sizes="180x180" href="~/img/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="~/img/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="~/img/favicon-16x16.png">
     <link rel="manifest" href="~/site.webmanifest">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body class="vh-100 d-flex flex-column">
     <div id="toastContainer" aria-live="polite" aria-atomic="true" class="position-fixed top-0 start-50 translate-middle-x p-3">
