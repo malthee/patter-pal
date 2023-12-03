@@ -4,6 +4,8 @@
     {
         // -- Compile time app constants -- //
         public const string AppUrl = "https://patter-pal.azurewebsites.net";
+        public const string AppDomain = "patter-pal.azurewebsites.net";
+        public const string AppDescription = "Your personal language teacher";
         public const string ConversationWebSocket = "WebSocket/StartConversation";
         public const string ConversationRestEndpoint = "Conversation";
         public const string ChatRestEndpoint = "Conversation/Chat";
