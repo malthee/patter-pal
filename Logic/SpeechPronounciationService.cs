@@ -6,7 +6,6 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using patter_pal.Models;
 using patter_pal.domain.Config;
-using static patter_pal.Models.PronounciationMessageModel;
 
 namespace patter_pal.Logic
 {
@@ -97,11 +96,17 @@ namespace patter_pal.Logic
 
         private void InitRecognizer(SpeechRecognizer recognizer, WebSocket ws, Action<SpeechRecognitionResult> onResult, Action<ErrorResponse> onError)
         {
+            bool hasSentResult = false; // Once a result from this recognizer is sent, don't send any more partial results
             _pronunciationAssessmentConfig.ApplyTo(recognizer);
 
             recognizer.Recognizing += async (s, e) =>
             {
                 _logger.LogDebug($"Recognizing: {e.Result.Text}");
+                if (hasSentResult)
+                {
+                    _logger.LogDebug("Already sent result, ignoring additional text.");
+                    return;
+                }
                 var partialText = JsonSerializer.Serialize(new SocketResult<string>(e.Result.Text, SocketResultType.PartialSpeech));
                 await WebSocketHelper.SendTextWhenOpen(ws, partialText);
             };
@@ -109,6 +114,13 @@ namespace patter_pal.Logic
             recognizer.Recognized += async (s, e) =>
             {
                 _logger.LogDebug($"Speech recognition result: {e.Result.Reason}, {e.Result.Text}");
+                if (hasSentResult)
+                {
+                    _logger.LogDebug("Already sent result, ignoring additional text.");
+                    return;
+                }
+
+                hasSentResult = true;
 
                 if (e.Result.Reason == ResultReason.RecognizedSpeech)
                 {
